@@ -1,0 +1,4 @@
+- Metrics?
+- Dataset structure?
+- GPU connection?
+- Do we need to stick 100% to the plan that we applied with or are minor changes OK?
