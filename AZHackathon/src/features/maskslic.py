@@ -41,13 +41,13 @@ class Mask:
         """
         Apply Mask to target image objects per magnification
         """
-        self.read_images()
-        target_masks = {k: [mask(v) for v in self.images[k]]
+        self._read_images()
+        target_masks = {k: [self._mask(v) for v in self.images[k]]
                         for k, v in self.images}
 
         self.target_masks = target_masks
 
-    def mask(self, img) -> np.ndarray:
+    def _mask(self, img) -> np.ndarray:
         """
         Scikit-image's Mask
 
@@ -62,7 +62,7 @@ class Mask:
 
         return mask
 
-    def get_target_files_paths(self) -> Dict[str, List[str]]:
+    def _get_target_files_paths(self) -> Dict[str, List[str]]:
         """
         Create dictionary with magnification names as keys (e.g., 20x, 40x).
         Each key contains a list with paths to target images/files
@@ -79,7 +79,7 @@ class Mask:
 
         self.target_paths = magn_target_paths
 
-    def read_images(self) -> Dict[str, List[np.ndarray]]:
+    def _read_images(self) -> Dict[str, List[np.ndarray]]:
         """
         Create dictionary with magnification names as keys (e.g., 20x, 40x).
         Each key contains a list with a magnification's targets
@@ -88,8 +88,8 @@ class Mask:
         Returns:
         magn_img_objs: dict with magnification:[target_image_objs] as key:value
         """
-        self.get_target_files_paths()
+        self._get_target_files_paths()
         magn_img_objs = {k: [io.imread(v) for v in get_target_files_paths()[k]]
-                         for k, v in self.get_target_files_paths().items()}
+                         for k, v in self._get_target_files_paths().items()}
 
         self.images = magn_img_objs
