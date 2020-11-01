@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
+import matplotlib.pyplot as plt
 
 def SpectralLoss(device, epsilon=1e-8):
     """Spectral regularizer for learning the power curve
@@ -8,45 +9,60 @@ def SpectralLoss(device, epsilon=1e-8):
     Requires images of format
     (b, c, w, h)
     """
-    N = 88
+    N = 69
     criterion_freq = nn.BCELoss()
     
     def spectral_loss(x_fake, x_real):
         # fake image 1d power spectrum
         psd1D_img = np.zeros([x_fake.shape[0], N])
-        for t in range(x_fake.shape[0]):
+        for i in range(x_fake.shape[0]):
             gen_imgs = x_fake.permute(0,2,3,1)
-            img_numpy = gen_imgs[t,:,:,:].cpu().detach().numpy()
-            img_gray = RGB2gray(img_numpy)
+            img_numpy = gen_imgs[i,:,:,:].cpu().detach().numpy()
+            if img_numpy.shape[-1] == 3:
+                img_gray = RGB2gray(img_numpy)
+            else: 
+                img_gray = img_numpy.mean(axis=-1)
+
             fft = np.fft.fft2(img_gray)
             fshift = np.fft.fftshift(fft)
             fshift += epsilon
             magnitude_spectrum = 20*np.log(np.abs(fshift))
             psd1D = azimuthalAverage(magnitude_spectrum)
             psd1D = (psd1D-np.min(psd1D))/(np.max(psd1D)-np.min(psd1D))
-            psd1D_img[t,:] = psd1D
+            psd1D_img[i,:] = psd1D
         
         psd1D_img = torch.from_numpy(psd1D_img).float()
-        psd1D_img = torch.Variable(psd1D_img, requires_grad=True).to(device)
+        psd1D_img = psd1D_img.to(device)
+        psd1D_img.requires_grad = True
             
         # real image 1d power spectrum
         psd1D_rec = np.zeros([x_real.shape[0], N])
-        for t in range(x_real.shape[0]):
+        for i in range(x_real.shape[0]):
             gen_imgs = x_real.permute(0,2,3,1)
-            img_numpy = gen_imgs[t,:,:,:].cpu().detach().numpy()
-            img_gray = RGB2gray(img_numpy)
+            img_numpy = gen_imgs[i,:,:,:].cpu().detach().numpy()
+
+            if img_numpy.shape[-1] == 3:
+                img_gray = RGB2gray(img_numpy)
+            else: 
+                img_gray = img_numpy.mean(axis=-1)
+
             fft = np.fft.fft2(img_gray)
             fshift = np.fft.fftshift(fft)
             fshift += epsilon
             magnitude_spectrum = 20*np.log(np.abs(fshift))
             psd1D = azimuthalAverage(magnitude_spectrum)           
             psd1D = (psd1D-np.min(psd1D))/(np.max(psd1D)-np.min(psd1D))
-            psd1D_rec[t,:] = psd1D
+            psd1D_rec[i,:] = psd1D
+            
                 
         psd1D_rec = torch.from_numpy(psd1D_rec).float()
-        psd1D_rec = torch.Variable(psd1D_rec, requires_grad=True).to(device)
+        psd1D_rec = psd1D_rec.to(device)
+        psd1D_rec.requires_grad = True
+        plt.plot(psd1D_rec.detach().numpy())
+        plt.show()
+        
 
-        loss_freq = criterion_freq(psd1D_rec,psd1D_img.detach())
+        loss_freq = criterion_freq(psd1D_rec, psd1D_img.detach())
         return loss_freq
     return spectral_loss
 
@@ -101,5 +117,5 @@ def RGB2gray(rgb):
 if __name__ == "__main__":
     freq_criterion = SpectralLoss("cpu", epsilon=1e-3)
     
-    freq_criterion(torch.zeros(1, 3, 100, 100), torch.zeros(1, 3, 100, 100))
-    
+    loss = freq_criterion(torch.ones(16, 2, 100, 100), torch.ones(16, 2, 100, 100))
+    print(loss)
