@@ -35,11 +35,11 @@ class Mask:
         """
         TODO
         """
-        self.apply_mask()
+        self._apply_mask()
         # add here code to write dict values (final masks) to output_path
         [[io.imsave(fname=img_nm, arr=img_as_ubyte(image_mask)) for img_nm,image_mask in v.items()] for k,v in self.target_masks.items()]
 
-    def apply_mask(self):
+    def _apply_mask(self):
         """
         Apply Mask to target image objects per magnification
 
