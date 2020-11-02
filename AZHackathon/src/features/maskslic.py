@@ -37,15 +37,15 @@ class Mask:
         """
         self._apply_mask()
         # add here code to write dict values (final masks) to output_path
-        [[io.imsave(fname=img_nm, arr=img_as_ubyte(image_mask)) for img_nm,image_mask in v.items()] for k,v in self.target_masks.items()]
+        [[io.imsave(fname=img_nm.format(), arr=img_as_ubyte(image_mask)) for img_nm,image_mask in v.items()] for k,v in self.target_masks.items()]
 
     def _apply_mask(self):
         """
         Apply Mask to target image objects per magnification.
 
         Outputs dictionary with magnification names as keys (e.g., 20x, 40x).
-        Each key's values is a dictionary whose keys are image names (Path().name)
-        and values are image masks (np array)
+        Each key's value is a dictionary whose keys are image names (Path().name)
+        and values are corresponding image masks (np.ndarray)
 
         Returns:
         target_masks: nested dict with magnification_x:{'image_name':image_obj_mask} as key:value
@@ -74,8 +74,8 @@ class Mask:
     def _read_images(self) -> Dict[str, List[np.ndarray]]:
         """
         Create dictionary with magnification names as keys (e.g., 20x, 40x).
-        Each key's values is a dictionary whose keys are image names (Path().name)
-        and values are image objects (scikit-image IO)
+        Each key's value is a dictionary whose keys are image names (Path().name)
+        and values are corresponding image objects (scikit-image IO)
 
         Returns:
         magn_img_objs: nested dict with magnification_x:{'image_name':image_obj} as key:value
