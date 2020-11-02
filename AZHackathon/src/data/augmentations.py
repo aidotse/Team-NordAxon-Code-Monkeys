@@ -2,7 +2,6 @@ import albumentations as A
 import numpy as np
 import random
 
-
 def stack(augmentation):
     def wrapper(self, input : list, target : list, mask : list) -> tuple:
         # Pack targets and inputs
@@ -150,6 +149,15 @@ class ChannelChange:
         target = np.transpose(target, self.changes)
         mask = np.transpose(mask, self.changes)
         return input, target, mask
+    
+class RandomResizeCrop:
+
+    def __init__(self, crop_size=(256,256), p=1):
+        self.transform = A.RandomResizedCrop(crop_size[1], crop_size[0], scale=(0.08,1.0), ratio=(0.75,1.3333333333333333))
+
+    @stack
+    def __call__(self, inputs : list, mask : list) -> dict:
+        return self.transform(image = inputs, mask = mask)
 
 # -------------------- Transform compose methods -------------------------
 
@@ -163,11 +171,12 @@ def affine_augmentations():
     scale = Scale((512,512))
     transforms = A.Compose([
         channels_last,
+        RandomResizeCrop(),
         vflip,
         hflip,
         rotate,
         transpose,
-        scale,
+        #scale,
         channels_first
         ])
     return transforms
@@ -189,6 +198,7 @@ def all_augmentations():
     median_blur = MedianBlur()
     pincushion = PincushionDistortion()
     transforms = A.Compose([
+        RandomResizeCrop(),
         channel_shuffle,
         channels_last,
         pincushion,
@@ -196,7 +206,7 @@ def all_augmentations():
         hflip,
         rotate,
         transpose,
-        scale,
+        #scale,
         gaussian_blur,
         elastic,
         grid_distortion,

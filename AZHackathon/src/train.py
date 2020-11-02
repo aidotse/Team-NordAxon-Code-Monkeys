@@ -1,36 +1,45 @@
 
+from tqdm import tqdm
+import numpy as np
 import torch
-from torch.data import DataLoader
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader
 
+from data.augmentations import affine_augmentations
+from data.dataset import ExampleDataset
+from models.unets import UnetResnet152
 
-def
 
 if __name__ == "__main__":
     
     cfg = {
         "model_params": {
-            "class": UNetResnet152,
+            "class": "UnetResnet152",
         },
         "save_path": "weights",
         "epochs": 40,
-        "num_workers": 8,
+        "num_workers": 0,
 
         "train_params": {
-            "batch_size": 32,
+            "batch_size": 2,
             "shuffle": True,
-        }
+        },
 
         "valid_params": {
-            "batch_size": 64,
+            "batch_size": 2,
             "shuffle": False,
         }
     }
 
-    train_dataset = AstraZenecaDataset("../data/training_dataset/train", transform=training_safe_augmentations)
-    valid_dataset = AstraZenecaDataset("../data/training_dataset/valid", transform=None)
+    #train_dataset = AstraZenecaDataset("../data/training_dataset/train", transform=training_safe_augmentations)
+    #valid_dataset = AstraZenecaDataset("../data/training_dataset/valid", transform=None)
 
-    train_dataloader = DataLoader(train_dataset, batch_size=cfg["train"]["batch_size"], num_workers=cfg["num_workers"], shuffle=cfg["train"]["shuffle"])
-    valid_dataloader = DataLoader(valid_dataset, batch_size=cfg["valid"]["batch_size"], num_workers=cfg["num_workers"], shuffle=cfg["valid"]["shuffle"])
+    train_dataset = ExampleDataset("../data/03_train_valid", transform=affine_augmentations())
+    valid_dataset = ExampleDataset("../data/03_train_valid", transform=None)
+
+    train_dataloader = DataLoader(train_dataset, batch_size=cfg["train_params"]["batch_size"], num_workers=cfg["num_workers"], shuffle=cfg["train_params"]["shuffle"])
+    valid_dataloader = DataLoader(valid_dataset, batch_size=cfg["valid_params"]["batch_size"], num_workers=cfg["num_workers"], shuffle=cfg["valid_params"]["shuffle"])
 
     # TODOS:
     # - Save the latest weight and also save the latest weights
@@ -43,16 +52,17 @@ if __name__ == "__main__":
 
     global_step = 0
     save_cp = False
-    device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    #device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    device = "cpu"
 
-    train_losses = 0
-    valid_losses = 0
+    train_losses = list()
+    valid_losses = list()
 
-    model = cfg["model_params"]["model_params"]()
+    model = UnetResnet152()
     model.to(device)
 
-    criterion =
-    optimizer = 
+    criterion = nn.L1Loss()
+    optimizer = optim.Adam(model.parameters())
     
     for epoch in range(cfg["epochs"]):
         
@@ -62,8 +72,9 @@ if __name__ == "__main__":
         train_loss = 0
         valid_loss = 0
 
-        with tqdm(total=len(dataset), desc=f'Epoch {epoch + 1}/{epochs}', unit='img') as pbar:
-            for inputs, targets in dataloader:
+        with tqdm(total=len(train_dataset), desc=f'Epoch {epoch + 1}/{cfg["epochs"]}', unit='img') as pbar:
+            for inputs, targets, masks in train_dataloader:
+                inputs, targets, masks = inputs.float(), targets.float(), masks.float()
 
                 inputs = inputs.to(device)
                 targets = targets.to(device)
@@ -84,13 +95,13 @@ if __name__ == "__main__":
 
                 train_losses.append(loss.item())
 
-                pbar.set_postfix(**{'train loss: ': np.mean(train_losses))
+                pbar.set_postfix(**{'train loss: ': np.mean(train_losses)})
                 pbar.update(inputs.shape[0])
 
         model.eval()
         torch.set_grad_enabled(False)
 
-        with tqdm(total=len(validation_dataset), desc=f'Epoch {epoch + 1}/{epochs}', unit='img') as pbar:
+        with tqdm(total=len(validation_dataset), desc=f'Epoch {epoch + 1}/{cfg["epochs"]}', unit='img') as pbar:
             for inputs, targets in validation_dataloader:
 
                 inputs = inputs.to(device)
