@@ -92,14 +92,6 @@ class PincushionDistortion:
     def __call__(self, inputs : list, mask : list) -> dict:
         return self.transform(image = inputs, mask = mask)
 
-class PerspectiveTransform:
-    pass
-    # Not implemented yet
-
-class PiecewiseAffine:
-    pass
-    # Not implemented yet
-
 # ----------------Color augmentations--------------------------------
 class RandomBrightnessContrast:
 
