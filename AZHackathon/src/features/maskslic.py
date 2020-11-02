@@ -41,7 +41,11 @@ class Mask:
 
     def _apply_mask(self):
         """
-        Apply Mask to target image objects per magnification
+        Apply Mask to target image objects per magnification.
+
+        Outputs dictionary with magnification names as keys (e.g., 20x, 40x).
+        Each key's values is a dictionary whose keys are image names (Path().name)
+        and values are image masks (np array)
 
         Returns:
         target_masks: nested dict with magnification_x:{'image_name':image_obj_mask} as key:value
@@ -70,8 +74,8 @@ class Mask:
     def _read_images(self) -> Dict[str, List[np.ndarray]]:
         """
         Create dictionary with magnification names as keys (e.g., 20x, 40x).
-        Each key contains a list with a magnification's targets
-        as image objetcs (scikit-image IO)
+        Each key's values is a dictionary whose keys are image names (Path().name)
+        and values are image objects (scikit-image IO)
 
         Returns:
         magn_img_objs: nested dict with magnification_x:{'image_name':image_obj} as key:value
