@@ -103,7 +103,7 @@ class ExampleDataset(Dataset):
         m = cv2.imread(mask_path, -1)
         # This code should stay:
         mask[0] = m
-
+        
         if self.transforms:
             for transform in self.transforms: 
                 input, output, mask = transform(input, output, mask)

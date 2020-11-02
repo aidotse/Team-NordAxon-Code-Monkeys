@@ -1,5 +1,6 @@
 
 from tqdm import tqdm
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -21,12 +22,12 @@ if __name__ == "__main__":
         "num_workers": 0,
 
         "train_params": {
-            "batch_size": 32,
+            "batch_size": 2,
             "shuffle": True,
         },
 
         "valid_params": {
-            "batch_size": 64,
+            "batch_size": 2,
             "shuffle": False,
         }
     }
@@ -51,10 +52,11 @@ if __name__ == "__main__":
 
     global_step = 0
     save_cp = False
-    device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    #device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    device = "cpu"
 
-    train_losses = 0
-    valid_losses = 0
+    train_losses = list()
+    valid_losses = list()
 
     model = UnetResnet152()
     model.to(device)
@@ -69,10 +71,10 @@ if __name__ == "__main__":
 
         train_loss = 0
         valid_loss = 0
-        print("Tast")
+
         with tqdm(total=len(train_dataset), desc=f'Epoch {epoch + 1}/{cfg["epochs"]}', unit='img') as pbar:
-            for inputs, targets in train_dataloader:
-                print("Test")
+            for inputs, targets, masks in train_dataloader:
+                inputs, targets, masks = inputs.float(), targets.float(), masks.float()
 
                 inputs = inputs.to(device)
                 targets = targets.to(device)
