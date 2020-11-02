@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import List, Dict
 
 import numpy as np
+from skimage import img_as_ubyte
 from skimage import io
 from skimage import morphology
 
@@ -36,11 +37,12 @@ class Mask:
         """
         self.apply_mask()
         # add here code to write dict values (final masks) to output_path
+        [[io.imsave(fname=img_nm, arr=img_as_ubyte(image_mask)) for img_nm,image_mask in v.items()] for k,v in self.target_masks.items()]
 
     def apply_mask(self):
         """
         Apply Mask to target image objects per magnification
-        
+
         Returns:
         target_masks: nested dict with magnification_x:{'image_name':image_obj_mask} as key:value
         """
