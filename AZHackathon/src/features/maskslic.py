@@ -62,23 +62,6 @@ class Mask:
 
         return mask
 
-    def _get_target_files_paths(self) -> Dict[str, List[str]]:
-        """
-        Create dictionary with magnification names as keys (e.g., 20x, 40x).
-        Each key contains a list with paths to target images/files
-        for a magnification.
-
-        Returns:
-        magn_target_paths: dict with magnification:[target_paths] as key:value
-        """
-        target_folders = [i for i in glob.glob(os.path.join(self.input_path, "/*/*/")
-                                               if "targets" in Path(i).name.lower()]
-        magn_target_paths = {}
-        for folder_path in target_folders:
-            magn_target_paths[Path(folder_path).parent.name] = glob.glob(folder_path + '/*.tif')
-
-        self.target_paths = magn_target_paths
-
     def _read_images(self) -> Dict[str, List[np.ndarray]]:
         """
         Create dictionary with magnification names as keys (e.g., 20x, 40x).
@@ -89,7 +72,26 @@ class Mask:
         magn_img_objs: dict with magnification:[target_image_objs] as key:value
         """
         self._get_target_files_paths()
-        magn_img_objs = {k: [io.imread(v) for v in get_target_files_paths()[k]]
-                         for k, v in self._get_target_files_paths().items()}
+        magn_img_objs = {k: [io.imread(v) for v in self.target_paths[k]]
+                         for k, v in self.target_paths.items()}
 
         self.images = magn_img_objs
+
+    def _get_target_files_paths(self) -> Dict[str, List[str]]:
+        """
+        Create dictionary with magnification names as keys (e.g., 20x, 40x).
+        Each key contains a list with paths to target images/files
+        for a magnification.
+
+        Returns:
+        magn_target_paths: dict with magnification:[target_paths] as key:value
+        """
+        target_folders = [i for i in Path(self.input_path).glob("*/*")
+                          if "targets" in Path(i).name.lower()]
+        magn_target_paths = {}
+        for folder_path in target_folders:
+            magn_target_paths[Path(folder_path).parent.name] = list(folder_path.glob('*.tif'))
+
+        self.target_paths = magn_target_paths
+
+
