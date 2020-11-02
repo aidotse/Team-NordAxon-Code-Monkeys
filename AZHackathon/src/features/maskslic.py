@@ -1,4 +1,5 @@
 import glob
+from pathlib import Path
 from typing import List, Dict
 
 import numpy as np
@@ -43,7 +44,7 @@ class Mask:
         """
         self._read_images()
         target_masks = {k: [self._mask(v) for v in self.images[k]]
-                        for k, v in self.images}
+                        for k, v in self.images.items()}
 
         self.target_masks = target_masks
 
@@ -93,5 +94,3 @@ class Mask:
             magn_target_paths[Path(folder_path).parent.name] = list(folder_path.glob('*.tif'))
 
         self.target_paths = magn_target_paths
-
-
