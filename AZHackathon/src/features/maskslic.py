@@ -1,4 +1,3 @@
-import glob
 from pathlib import Path
 from typing import List, Dict
 
@@ -41,10 +40,13 @@ class Mask:
     def apply_mask(self):
         """
         Apply Mask to target image objects per magnification
+        
+        Returns:
+        target_masks: nested dict with magnification_x:{'image_name':image_obj_mask} as key:value
         """
         self._read_images()
-        target_masks = {k: [self._mask(v) for v in self.images[k]]
-                        for k, v in self.images.items()}
+        target_masks = {magnif_name: {img_nm: self._mask(img_obj) for img_nm, img_obj in img_paths.items()}
+                        for magnif_name, img_paths in self.images.items()}
 
         self.target_masks = target_masks
 
@@ -70,11 +72,11 @@ class Mask:
         as image objetcs (scikit-image IO)
 
         Returns:
-        magn_img_objs: dict with magnification:[target_image_objs] as key:value
+        magn_img_objs: nested dict with magnification_x:{'image_name':image_obj} as key:value
         """
         self._get_target_files_paths()
-        magn_img_objs = {k: [io.imread(v) for v in self.target_paths[k]]
-                         for k, v in self.target_paths.items()}
+        magn_img_objs = {magnif_name: {img.name: io.imread(img) for img in img_paths}
+                         for magnif_name, img_paths in self.target_paths.items()}
 
         self.images = magn_img_objs
 
