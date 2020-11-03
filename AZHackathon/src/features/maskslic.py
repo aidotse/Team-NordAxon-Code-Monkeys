@@ -31,13 +31,18 @@ class Mask:
         self.target_paths = None
         self.target_masks = None
 
-    def store_result(self):
+    def store_masks(self):
         """
         TODO
         """
         self._apply_mask()
         # add here code to write dict values (final masks) to output_path
-        [[io.imsave(fname=img_nm.format(), arr=img_as_ubyte(image_mask)) for img_nm,image_mask in v.items()] for k,v in self.target_masks.items()]
+        for magnification in self.target_masks.keys():
+            output_path_magnif = Path(self.output_path) / 'masks' / magnification
+            output_path_magnif.mkdir(parents=True, exist_ok=False)
+
+        [[io.imsave(fname="{}{}{}/{}".format(self.output_path, 'masks/', k, img_nm), arr=img_as_ubyte(image_mask)) for img_nm, image_mask in v.items()]
+         for k, v in self.target_masks.items()]
 
     def _apply_mask(self):
         """
@@ -89,8 +94,7 @@ class Mask:
     def _get_target_files_paths(self) -> Dict[str, List[str]]:
         """
         Create dictionary with magnification names as keys (e.g., 20x, 40x).
-        Each key contains a list with paths to target images/files
-        for a magnification.
+        Each key contains a list with paths to a magnification's target images/files.
 
         Returns:
         magn_target_paths: dict with magnification:[target_paths] as key:value
