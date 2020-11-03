@@ -39,7 +39,7 @@ class Mask:
         # add here code to write dict values (final masks) to output_path
         for magnification in self.target_masks.keys():
             output_path_magnif = Path(self.output_path) / 'masks' / magnification
-            output_path_magnif.mkdir(parents=True, exist_ok=False)
+            output_path_magnif.mkdir(parents=True, exist_ok=True)
 
         [[io.imsave(fname="{}{}{}/{}".format(self.output_path, 'masks/', k, img_nm), arr=img_as_ubyte(image_mask)) for img_nm, image_mask in v.items()]
          for k, v in self.target_masks.items()]
@@ -99,10 +99,8 @@ class Mask:
         Returns:
         magn_target_paths: dict with magnification:[target_paths] as key:value
         """
-        target_folders = [i for i in Path(self.input_path).glob("*/*")
-                          if "targets" in Path(i).name.lower()]
         magn_target_paths = {}
-        for folder_path in target_folders:
-            magn_target_paths[Path(folder_path).parent.name] = list(folder_path.glob('*.tif'))
+        for folder_path in Path(self.input_path).glob("targets/*"):
+            magn_target_paths[Path(folder_path).name] = list(folder_path.glob('*.tif'))
 
         self.target_paths = magn_target_paths
