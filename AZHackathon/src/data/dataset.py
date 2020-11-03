@@ -9,7 +9,7 @@ from torch.utils.data import Dataset
 from utils.utils import get_image_metadata
 class ExampleDataset(Dataset):
 
-    def __init__(self, dataset_path, crop_size=(256,256), transform=None):
+    def __init__(self, dataset_path, crop_size=(256,256), transform=None, test=False):
         """Example dataset for sample images for the Astra Zeneca competition
         
         Group by row_col and field of view
@@ -32,7 +32,7 @@ class ExampleDataset(Dataset):
         """
         self.dataset_path = dataset_path
         
-        dataset_samples = glob.glob(os.path.join(self.dataset_path, "*/*/Assay*"))
+        dataset_samples = glob.glob(os.path.join(self.dataset_path, "*/Assay*"))
 
         dataset_dicts = [get_image_metadata(path) for path in dataset_samples]
         
@@ -64,10 +64,14 @@ class ExampleDataset(Dataset):
         self.samples = list(samples.values())
         self.crop_size = crop_size
         self.transforms = transform
+        self.test = test
         
     def __len__(self):
-        #return len(self.samples)
-        return 200
+        if self.test:
+            return len(self.samples)
+        else:
+            #return len(self.samples)
+            return 100
     
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
