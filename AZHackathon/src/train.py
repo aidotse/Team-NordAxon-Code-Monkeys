@@ -1,4 +1,6 @@
 
+from pathlib import Path
+
 from tqdm import tqdm
 import numpy as np
 import torch
@@ -6,10 +8,15 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
-from data.augmentations import affine_augmentations
+from data.augmentations import affine_augmentations, test_augmentations
 from data.dataset import ExampleDataset
 from models.unets import UnetResnet152
+from utils.losses import SpectralLoss
 
+
+# Init wandb
+import wandb
+wandb.init(project='astrazeneca')
 
 if __name__ == "__main__":
     
@@ -20,51 +27,67 @@ if __name__ == "__main__":
         "save_path": "weights",
         "epochs": 40,
         "num_workers": 0,
+        "save_checkpoints": True,
+        "load_checkpoint": False,
 
         "train_params": {
-            "batch_size": 2,
+            "batch_size": 16,
             "shuffle": True,
         },
 
         "valid_params": {
-            "batch_size": 2,
+            "batch_size": 1,
             "shuffle": False,
         }
     }
+    Path(cfg["save_path"]).mkdir(exist_ok=True, parents=True)
 
     #train_dataset = AstraZenecaDataset("../data/training_dataset/train", transform=training_safe_augmentations)
     #valid_dataset = AstraZenecaDataset("../data/training_dataset/valid", transform=None)
 
-    train_dataset = ExampleDataset("../data/03_train_valid", transform=affine_augmentations())
-    valid_dataset = ExampleDataset("../data/03_train_valid", transform=None)
+    train_dataset = ExampleDataset("../data/03_train_valid/train", transform=affine_augmentations())
+    valid_dataset = ExampleDataset("../data/03_train_valid/valid", transform=test_augmentations(), test=True)
 
     train_dataloader = DataLoader(train_dataset, batch_size=cfg["train_params"]["batch_size"], num_workers=cfg["num_workers"], shuffle=cfg["train_params"]["shuffle"])
     valid_dataloader = DataLoader(valid_dataset, batch_size=cfg["valid_params"]["batch_size"], num_workers=cfg["num_workers"], shuffle=cfg["valid_params"]["shuffle"])
 
     # TODOS:
-    # - Save the latest weight and also save the latest weights
+    # |x| Save the latest weight and also save the latest weights
     # - What is a scheduler?
     # - Validation will use same metric for all models we will ever train
     # - Train can use different trianing loss functions
-    # - What to logg
-    # - Spectral regularizer
+    # - What to log
+    # |x| Spectral regularizer
     # - Gan training
 
-    global_step = 0
     save_cp = False
-    #device = "cuda:0" if torch.cuda.is_available() else "cpu"
-    device = "cpu"
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    #device = "cpu"
 
     train_losses = list()
     valid_losses = list()
 
     model = UnetResnet152()
-    model.to(device)
 
     criterion = nn.L1Loss()
+    freq_criterion = SpectralLoss(device)
     optimizer = optim.Adam(model.parameters())
     
-    for epoch in range(cfg["epochs"]):
+    # Load checkpoints 
+    if cfg["load_checkpoint"]:
+        weight_file = os.path.join(cfg["save_path"], 'last.pth')
+        checkpoint = torch.load(weight_file, map_location=device)
+        epoch = checkpoint['epoch']
+        best_valid_loss = checkpoint['best_valid_loss']
+        model.load_state_dict(checkpoint['model_state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    else:
+        epoch = 0
+        best_valid_loss = 1e100
+    print(f"Starting from epoch {epoch}")
+
+    model.to(device)
+    for epoch in range(epoch, cfg["epochs"]):
         
         model.train()
         torch.set_grad_enabled(True)
@@ -81,9 +104,9 @@ if __name__ == "__main__":
                 
                 preds = model(inputs)
 
-                loss = criterion(preds, targets)
+                loss = criterion(preds, targets) + freq_criterion(preds, targets)
                 
-                train_loss += loss.item()
+                train_loss += loss.item() 
 
                 optimizer.zero_grad()
                 loss.backward()
@@ -101,8 +124,9 @@ if __name__ == "__main__":
         model.eval()
         torch.set_grad_enabled(False)
 
-        with tqdm(total=len(validation_dataset), desc=f'Epoch {epoch + 1}/{cfg["epochs"]}', unit='img') as pbar:
-            for inputs, targets in validation_dataloader:
+        with tqdm(total=len(valid_dataset), desc=f'Epoch {epoch + 1}/{cfg["epochs"]}', unit='img') as pbar:
+            for inputs, targets, masks in valid_dataloader:
+                inputs, targets, masks = inputs.float(), targets.float(), masks.float()
 
                 inputs = inputs.to(device)
                 targets = targets.to(device)
@@ -117,8 +141,31 @@ if __name__ == "__main__":
 
                 pbar.set_postfix(**{'valid loss: ': np.mean(valid_losses)})
                 pbar.update(inputs.shape[0])
+        
+        # If validation score improves, save the weights
+        if best_valid_loss > np.mean(valid_losses):
+            best_valid_loss = np.mean(valid_losses)
+            torch.save({
+                'epoch': epoch + 1,
+                'best_valid_loss': best_valid_loss,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict()},
+                os.path.join(cfg["save_path"], 'best.pth')
+                )     
 
-        if save_cp:
+        # Save latest weights as checkpoints
+        if save_checkpoints:
+            torch.save({
+                'epoch': epoch + 1,
+                'best_valid_loss': best_valid_loss,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict()},
+                os.path.join(cfg["save_path"], 'last.pth')
+                )     
+
+
+
+
             try:
                 os.mkdir(dir_checkpoint)
                 logging.info('Created checkpoint directory')
@@ -127,3 +174,4 @@ if __name__ == "__main__":
             torch.save(net.state_dict(),
                     dir_checkpoint + f'CP_epoch{epoch + 1}.pth')
             logging.info(f'Checkpoint {epoch + 1} saved !')
+    torch.save(net.state_dict(), f'last{epoch + 1}.pth')

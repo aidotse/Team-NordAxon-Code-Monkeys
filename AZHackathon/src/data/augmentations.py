@@ -215,3 +215,23 @@ def all_augmentations():
         channels_first
         ])
     return transforms
+
+def test_augmentations():
+    #vflip = VerticalFlip()
+    #hflip = HorizontalFlip() 
+    #rotate = Rotate()
+    channels_last = ChannelChange((1,2,0))
+    channels_first = ChannelChange((2,0,1))
+    #transpose = Transpose() 
+    #cale = Scale((512,512))
+    transforms = A.Compose([
+        channels_last,
+        RandomResizeCrop(crop_size=(1024,1024)),
+        #vflip,
+        #hflip,
+        #rotate,
+        #transpose,
+        #scale,
+        channels_first
+        ])
+    return transforms
