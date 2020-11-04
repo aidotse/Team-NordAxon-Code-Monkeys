@@ -1,4 +1,5 @@
-
+import os
+import random
 from pathlib import Path
 
 from tqdm import tqdm
@@ -15,8 +16,14 @@ from utils.losses import SpectralLoss
 
 
 # Init wandb
-import wandb
-wandb.init(project='astrazeneca')
+#import wandb
+#wandb.init(project='astrazeneca')
+# Ensure deterministic behavior
+torch.backends.cudnn.deterministic = True
+random.seed(hash("setting random seeds") % 2**32 - 1)
+np.random.seed(hash("improves reproducibility") % 2**32 - 1)
+torch.manual_seed(hash("by removing stochasticity") % 2**32 - 1)
+torch.cuda.manual_seed_all(hash("so runs are repeatable") % 2**32 - 1)
 
 if __name__ == "__main__":
     
@@ -25,13 +32,13 @@ if __name__ == "__main__":
             "class": "UnetResnet152",
         },
         "save_path": "weights",
-        "epochs": 40,
+        "epochs": 400,
         "num_workers": 0,
         "save_checkpoints": True,
         "load_checkpoint": False,
 
         "train_params": {
-            "batch_size": 16,
+            "batch_size": 64,
             "shuffle": True,
         },
 
@@ -44,9 +51,9 @@ if __name__ == "__main__":
 
     #train_dataset = AstraZenecaDataset("../data/training_dataset/train", transform=training_safe_augmentations)
     #valid_dataset = AstraZenecaDataset("../data/training_dataset/valid", transform=None)
-
-    train_dataset = ExampleDataset("../data/03_train_valid/train", transform=affine_augmentations())
-    valid_dataset = ExampleDataset("../data/03_train_valid/valid", transform=test_augmentations(), test=True)
+    
+    train_dataset = ExampleDataset("../data/03_training_data/train", transform=affine_augmentations())
+    valid_dataset = ExampleDataset("../data/03_training_data/valid", transform=test_augmentations(), test=True)
 
     train_dataloader = DataLoader(train_dataset, batch_size=cfg["train_params"]["batch_size"], num_workers=cfg["num_workers"], shuffle=cfg["train_params"]["shuffle"])
     valid_dataloader = DataLoader(valid_dataset, batch_size=cfg["valid_params"]["batch_size"], num_workers=cfg["num_workers"], shuffle=cfg["valid_params"]["shuffle"])
@@ -94,9 +101,10 @@ if __name__ == "__main__":
 
         train_loss = 0
         valid_loss = 0
-
+        
         with tqdm(total=len(train_dataset), desc=f'Epoch {epoch + 1}/{cfg["epochs"]}', unit='img') as pbar:
             for inputs, targets, masks in train_dataloader:
+    
                 inputs, targets, masks = inputs.float(), targets.float(), masks.float()
 
                 inputs = inputs.to(device)
@@ -109,10 +117,7 @@ if __name__ == "__main__":
                 train_loss += loss.item() 
 
                 optimizer.zero_grad()
-                loss.backward()
-                
-                # Gradient clipping
-                #nn.utils.clip_grad_value_(model.parameters(), 0.1)
+                loss.backward()#nn.utils.clip_grad_value_(model.parameters(), 0.1)
                 
                 optimizer.step()
 
@@ -154,7 +159,7 @@ if __name__ == "__main__":
                 )     
 
         # Save latest weights as checkpoints
-        if save_checkpoints:
+        if cfg["save_checkpoints"]:
             torch.save({
                 'epoch': epoch + 1,
                 'best_valid_loss': best_valid_loss,
@@ -166,12 +171,12 @@ if __name__ == "__main__":
 
 
 
-            try:
-                os.mkdir(dir_checkpoint)
-                logging.info('Created checkpoint directory')
-            except OSError:
-                pass
-            torch.save(net.state_dict(),
-                    dir_checkpoint + f'CP_epoch{epoch + 1}.pth')
-            logging.info(f'Checkpoint {epoch + 1} saved !')
+
+
+
+
+
+
+
+
     torch.save(net.state_dict(), f'last{epoch + 1}.pth')

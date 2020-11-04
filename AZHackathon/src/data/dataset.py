@@ -32,7 +32,7 @@ class ExampleDataset(Dataset):
         """
         self.dataset_path = dataset_path
         
-        dataset_samples = glob.glob(os.path.join(self.dataset_path, "*/Assay*"))
+        dataset_samples = glob.glob(os.path.join(self.dataset_path, "*/*/Assay*"))
 
         dataset_dicts = [get_image_metadata(path) for path in dataset_samples]
         
@@ -67,11 +67,7 @@ class ExampleDataset(Dataset):
         self.test = test
         
     def __len__(self):
-        if self.test:
-            return len(self.samples)
-        else:
-            #return len(self.samples)
-            return 100
+        return len(self.samples) * 10
     
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
