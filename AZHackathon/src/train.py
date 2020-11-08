@@ -1,5 +1,6 @@
 import os
 import random
+from time import time
 from pathlib import Path
 
 from tqdm import tqdm
@@ -16,8 +17,8 @@ from utils.losses import SpectralLoss
 
 
 # Init wandb
-#import wandb
-#wandb.init(project='astrazeneca')
+import wandb
+
 # Ensure deterministic behavior
 torch.backends.cudnn.deterministic = True
 random.seed(hash("setting random seeds") % 2**32 - 1)
@@ -32,151 +33,159 @@ if __name__ == "__main__":
             "class": "UnetResnet152",
         },
         "save_path": "weights",
-        "epochs": 400,
-        "num_workers": 0,
+        "epochs": 800,
+        "num_workers": 16,
         "save_checkpoints": True,
-        "load_checkpoint": False,
+        "load_checkpoint": False,#True,#False,
 
         "train_params": {
-            "batch_size": 64,
+            "batch_size": 32,
             "shuffle": True,
         },
 
         "valid_params": {
-            "batch_size": 1,
+            "batch_size": 32,
             "shuffle": False,
         }
     }
-    Path(cfg["save_path"]).mkdir(exist_ok=True, parents=True)
+    with wandb.init(project="hackathon-astrazeneca", config=cfg):
+        Path(cfg["save_path"]).mkdir(exist_ok=True, parents=True)
 
-    #train_dataset = AstraZenecaDataset("../data/training_dataset/train", transform=training_safe_augmentations)
-    #valid_dataset = AstraZenecaDataset("../data/training_dataset/valid", transform=None)
+        #train_dataset = AstraZenecaDataset("../data/training_dataset/train", transform=training_safe_augmentations)
+        #valid_dataset = AstraZenecaDataset("../data/training_dataset/valid", transform=None)
     
-    train_dataset = ExampleDataset("../data/03_training_data/train", transform=affine_augmentations())
-    valid_dataset = ExampleDataset("../data/03_training_data/valid", transform=test_augmentations(), test=True)
+        train_dataset = ExampleDataset("../data/03_training_data/normalized_bias/train", transform=affine_augmentations())
+        valid_dataset = ExampleDataset("../data/03_training_data/normalized_bias/valid", transform=test_augmentations(crop_size=(256,256)), test=True)
 
-    train_dataloader = DataLoader(train_dataset, batch_size=cfg["train_params"]["batch_size"], num_workers=cfg["num_workers"], shuffle=cfg["train_params"]["shuffle"])
-    valid_dataloader = DataLoader(valid_dataset, batch_size=cfg["valid_params"]["batch_size"], num_workers=cfg["num_workers"], shuffle=cfg["valid_params"]["shuffle"])
+        train_dataloader = DataLoader(train_dataset, batch_size=cfg["train_params"]["batch_size"], num_workers=cfg["num_workers"], shuffle=cfg["train_params"]["shuffle"])
+        valid_dataloader = DataLoader(valid_dataset, batch_size=cfg["valid_params"]["batch_size"], num_workers=cfg["num_workers"], shuffle=cfg["valid_params"]["shuffle"])
 
-    # TODOS:
-    # |x| Save the latest weight and also save the latest weights
-    # - What is a scheduler?
-    # - Validation will use same metric for all models we will ever train
-    # - Train can use different trianing loss functions
-    # - What to log
-    # |x| Spectral regularizer
-    # - Gan training
+        # TODOS:
+        # |x| Save the latest weight and also save the latest weights
+        # - What is a scheduler?
+        # - Validation will use same metric for all models we will ever train
+        # - Train can use different trianing loss functions
+        # - What to log
+        # |x| Spectral regularizer
+        # - Gan training
 
-    save_cp = False
-    device = "cuda:0" if torch.cuda.is_available() else "cpu"
-    #device = "cpu"
 
-    train_losses = list()
-    valid_losses = list()
+        device = "cuda:0" if torch.cuda.is_available() else "cpu"
+        #device = "cpu"
 
-    model = UnetResnet152()
+        train_losses = list()
+        valid_losses = list()
 
-    criterion = nn.L1Loss()
-    freq_criterion = SpectralLoss(device)
-    optimizer = optim.Adam(model.parameters())
+        model = UnetResnet152(output_channels=1)
+        wandb.watch(model, log="all")
+        criterion = nn.L1Loss(reduction="mean")
+        freq_criterion = SpectralLoss(device)
+        optimizer = optim.Adam(model.parameters())
     
-    # Load checkpoints 
-    if cfg["load_checkpoint"]:
-        weight_file = os.path.join(cfg["save_path"], 'last.pth')
-        checkpoint = torch.load(weight_file, map_location=device)
-        epoch = checkpoint['epoch']
-        best_valid_loss = checkpoint['best_valid_loss']
-        model.load_state_dict(checkpoint['model_state_dict'])
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    else:
-        epoch = 0
-        best_valid_loss = 1e100
-    print(f"Starting from epoch {epoch}")
-
-    model.to(device)
-    for epoch in range(epoch, cfg["epochs"]):
+        # Load checkpoints 
+        if cfg["load_checkpoint"]:
+            weight_file = os.path.join(cfg["save_path"], 'last.pth')
+            checkpoint = torch.load(weight_file, map_location=device)
+            epoch = checkpoint['epoch']
+            best_valid_loss = checkpoint['best_valid_loss']
+            model.load_state_dict(checkpoint['model_state_dict'])
+            
+            #optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        else:
+            epoch = 0
+            best_valid_loss = 1e100
         
-        model.train()
-        torch.set_grad_enabled(True)
+        model.to(device)
+        print(f"Starting from epoch {epoch}")
 
-        train_loss = 0
-        valid_loss = 0
+        for epoch in range(epoch, cfg["epochs"]):
         
-        with tqdm(total=len(train_dataset), desc=f'Epoch {epoch + 1}/{cfg["epochs"]}', unit='img') as pbar:
-            for inputs, targets, masks in train_dataloader:
-    
-                inputs, targets, masks = inputs.float(), targets.float(), masks.float()
+            model.train()
+            torch.set_grad_enabled(True)
 
-                inputs = inputs.to(device)
-                targets = targets.to(device)
-                
-                preds = model(inputs)
-
-                loss = criterion(preds, targets) + freq_criterion(preds, targets)
-                
-                train_loss += loss.item() 
-
-                optimizer.zero_grad()
-                loss.backward()#nn.utils.clip_grad_value_(model.parameters(), 0.1)
-                
-                optimizer.step()
-
-                train_losses.append(loss.item())
-
-                pbar.set_postfix(**{'train loss: ': np.mean(train_losses)})
-                pbar.update(inputs.shape[0])
-
-        model.eval()
-        torch.set_grad_enabled(False)
-
-        with tqdm(total=len(valid_dataset), desc=f'Epoch {epoch + 1}/{cfg["epochs"]}', unit='img') as pbar:
-            for inputs, targets, masks in valid_dataloader:
-                inputs, targets, masks = inputs.float(), targets.float(), masks.float()
-
-                inputs = inputs.to(device)
-                targets = targets.to(device)
-                
-                preds = model(inputs)
-
-                loss = criterion(preds, targets)
-                
-                valid_loss += loss.item()
-
-                valid_losses.append(loss.item())
-
-                pbar.set_postfix(**{'valid loss: ': np.mean(valid_losses)})
-                pbar.update(inputs.shape[0])
+            train_loss = 0
+            valid_loss = 0
         
-        # If validation score improves, save the weights
-        if best_valid_loss > np.mean(valid_losses):
-            best_valid_loss = np.mean(valid_losses)
-            torch.save({
-                'epoch': epoch + 1,
-                'best_valid_loss': best_valid_loss,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict()},
-                os.path.join(cfg["save_path"], 'best.pth')
-                )     
+            with tqdm(total=len(train_dataset), desc=f'Epoch {epoch + 1}/{cfg["epochs"]}', unit='img') as pbar:
+                time_0 = time()
+                for inputs, targets, masks in train_dataloader:
+                    
+                    time_1 = time()
 
-        # Save latest weights as checkpoints
-        if cfg["save_checkpoints"]:
-            torch.save({
-                'epoch': epoch + 1,
-                'best_valid_loss': best_valid_loss,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict()},
-                os.path.join(cfg["save_path"], 'last.pth')
-                )     
+                    inputs, targets, masks = inputs.float(), targets.float(), masks.float()
 
+                    inputs = inputs.to(device)
+                
+                    "targets_masks = torch.cat([targets[:,0].unsqueeze(1), masks[:,0].unsqueeze(1)], axis=1).to(device)"
+                    targets = targets[:,2].unsqueeze(1).to(device)
+                
+                    preds = model(inputs)
+                    
+                    loss = criterion(preds, targets) + freq_criterion(preds, targets)
+                
+                    train_loss += loss.item() 
+                    time_2 = time()
 
+                    optimizer.zero_grad()
+                    loss.backward()#nn.utils.clip_grad_value_(model.parameters(), 0.1)
+                
+                    optimizer.step()
 
+                    train_losses.append(loss.item())
 
+                    pbar.set_postfix(**{'train loss: ': np.mean(train_losses)})
+                    pbar.update(inputs.shape[0])
+                    time_0 = time()
+            model.eval()
+            
+            torch.set_grad_enabled(False)
 
+            with tqdm(total=len(valid_dataset), desc=f'Epoch {epoch + 1}/{cfg["epochs"]}', unit='img') as pbar:
+                for inputs, targets, masks in valid_dataloader:
+                    inputs, targets, masks = inputs.float(), targets.float(), masks.float()
 
+                    inputs = inputs.to(device)
+                    targets = targets[:,2].unsqueeze(1).to(device)
+                
+                    preds = model(inputs)
 
+                    loss = criterion(preds, targets)
+                
+                    valid_loss += loss.item()
 
+                    valid_losses.append(loss.item())
 
+                    pbar.set_postfix(**{'valid loss: ': np.mean(valid_losses)})
+                    pbar.update(inputs.shape[0])
 
+            wandb.log({
+                "epoch":epoch, 
+                "A3: train MAE": np.mean(train_losses),
+                "A3: valid MAE": np.mean(valid_losses),
+                "data loading time": time_1 - time_0,
+                "forward pass time": time_2 - time_1,
+                "backpropagation time": time_0 - time_2,
+                })
 
+            # If validation score improves, save the weights
+            if best_valid_loss > np.mean(valid_losses):
+                best_valid_loss = np.mean(valid_losses)
+                torch.save({
+                    'epoch': epoch + 1,
+                    'best_valid_loss': best_valid_loss,
+                    'model_state_dict': model.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict()},
+                    os.path.join(cfg["save_path"], 'best.pth')
+                    )     
 
-    torch.save(net.state_dict(), f'last{epoch + 1}.pth')
+            # Save latest weights as checkpoints
+            if cfg["save_checkpoints"]:
+                torch.save({
+                    'epoch': epoch + 1,
+                    'best_valid_loss': best_valid_loss,
+                    'model_state_dict': model.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict()},
+                    os.path.join(cfg["save_path"], 'last.pth')
+                    )
+
+        torch.save(net.state_dict(), f'last{epoch + 1}.pth')

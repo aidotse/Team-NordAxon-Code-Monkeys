@@ -36,7 +36,7 @@ class HorizontalFlip:
 
 class Rotate:
 
-    def __init__(self, p = 0.5, limit = 89):
+    def __init__(self, p = 0.5, limit = 9):
         self.transform = A.Rotate(limit = limit, p=p)
 
     @stack
@@ -216,7 +216,7 @@ def all_augmentations():
         ])
     return transforms
 
-def test_augmentations():
+def test_augmentations(crop_size=(1024,1024)):
     #vflip = VerticalFlip()
     #hflip = HorizontalFlip() 
     #rotate = Rotate()
@@ -226,7 +226,7 @@ def test_augmentations():
     #cale = Scale((512,512))
     transforms = A.Compose([
         channels_last,
-        RandomResizeCrop(crop_size=(1024,1024)),
+        RandomResizeCrop(crop_size=crop_size),
         #vflip,
         #hflip,
         #rotate,
