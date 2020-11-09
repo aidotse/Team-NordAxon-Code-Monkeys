@@ -26,7 +26,11 @@ torch.manual_seed(hash("by removing stochasticity") % 2**32 - 1)
 torch.cuda.manual_seed_all(hash("so runs are repeatable") % 2**32 - 1)
 
 if __name__ == "__main__":
-    
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--target', required=True, default='A',  help="Either 'A1', 'A2' or 'A3'")
+    opt = parser.parse_args()
+    print(opt)
+
     cfg = {
         "model_params": {
             "class": "UnetResnet152",
