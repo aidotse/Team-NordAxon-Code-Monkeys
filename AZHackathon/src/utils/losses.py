@@ -3,6 +3,9 @@ import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
 
+def pixelwise_MAE(pred, true):
+    return (pred - true).abs().mean()
+
 def SpectralLoss(device, epsilon=1e-8):
     """Spectral regularizer for learning the power curve
     

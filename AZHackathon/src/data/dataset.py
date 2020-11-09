@@ -67,7 +67,7 @@ class ExampleDataset(Dataset):
         self.test = test
         
     def __len__(self):
-        return len(self.samples) * 10
+        return len(self.samples) * 32 
     
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
@@ -87,13 +87,13 @@ class ExampleDataset(Dataset):
         for i, z_number_3d in enumerate(["Z01", "Z02", "Z03", "Z04", "Z05", "Z06", "Z07"]):
             img_path = sample_dict["input"][z_number_3d]
             img = cv2.imread(img_path, -1)
-            img = img.astype(np.int16)
+            #img = img.astype(np.int16)
             input[i] = img
 
         for i, action_list_number in enumerate(["A01", "A02", "A03"]):
             img_path = sample_dict["target"][action_list_number]
             img = cv2.imread(img_path, -1)
-            img = img.astype(np.int16)
+            #img = img.astype(np.int16)
             output[i] = img
         
         # add real nuclei mask -- saved as pickle because of problems... ---- /Isabella
