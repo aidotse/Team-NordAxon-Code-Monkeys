@@ -97,6 +97,24 @@ if __name__ == "__main__":
         optimizer_d = optim.Adam(net_d.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
         net_g_scheduler = get_scheduler(optimizer_g, opt)
         net_d_scheduler = get_scheduler(optimizer_d, opt)
+
+
+                # Load checkpoints 
+        if cfg["load_checkpoint"]:
+            g_weight_file = os.path.join(cfg["save_path"], 'g_last.pth')
+            g_checkpoint = torch.load(g_weight_file, map_location=device)
+            epoch = g_checkpoint['epoch']
+            best_valid_loss = g_checkpoint['best_valid_loss']
+            net_g.load_state_dict(g_checkpoint['model_state_dict'])
+
+            d_weight_file = os.path.join(cfg["save_path"], 'd_last.pth')
+            d_checkpoint = torch.load(d_weight_file, map_location=device)
+            net_d.load_state_dict(d_checkpoint['model_state_dict'])
+        else:
+            epoch = 0
+            best_valid_loss = 1e100
+        
+        print(f"Starting from epoch {epoch}")
     
         for epoch in range(opt.epoch_count, opt.niter + opt.niter_decay + 1):
             net_g.train()
@@ -183,15 +201,36 @@ if __name__ == "__main__":
                 "A2: valid MAE": np.mean(valid_losses),
                 "A2: train MAE": np.mean(train_losses)
             })
-        
-            #checkpoint
-            if epoch % 50 == 0:
-                if not os.path.exists("checkpoint"):
-                    os.mkdir("checkpoint")
-                if not os.path.exists(os.path.join("checkpoint", opt.dataset)):
-                    os.mkdir(os.path.join("checkpoint", opt.dataset))
-                net_g_model_out_path = "checkpoint/{}/netG_model_epoch_{}.pth".format(opt.dataset, epoch)
-                net_d_model_out_path = "checkpoint/{}/netD_model_epoch_{}.pth".format(opt.dataset, epoch)
-                torch.save(net_g, net_g_model_out_path)
-                torch.save(net_d, net_d_model_out_path)
-                print("Checkpoint saved to {}".format("checkpoint" + opt.dataset))
+
+            # If validation score improves, save the weights
+            if best_valid_loss > np.mean(valid_losses):
+                best_valid_loss = np.mean(valid_losses)
+                torch.save({
+                    'epoch': epoch + 1,
+                    'best_valid_loss': best_valid_loss,
+                    'model_state_dict': net_g.state_dict(),
+                    os.path.join(cfg["save_path"], 'g_best.pth')
+                )   
+                torch.save({
+                    'epoch': epoch + 1,
+                    'best_valid_loss': best_valid_loss,
+                    'model_state_dict': net_d.state_dict(),
+                    os.path.join(cfg["save_path"], 'd_best.pth')
+                )     
+  
+
+            # Save latest weights as checkpoints
+            if cfg["save_checkpoints"]:
+                torch.save({
+                    'epoch': epoch + 1,
+                    'best_valid_loss': best_valid_loss,
+                    'model_state_dict': net_g.state_dict(),
+                    os.path.join(cfg["save_path"], 'g_last.pth')
+                )
+                torch.save({
+                    'epoch': epoch + 1,
+                    'best_valid_loss': best_valid_loss,
+                    'model_state_dict': net_d.state_dict(),
+                    os.path.join(cfg["save_path"], 'd_last.pth')
+                )
+
