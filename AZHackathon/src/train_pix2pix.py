@@ -3,6 +3,7 @@ import argparse
 import os
 import random
 
+from tqdm import tqdm
 import numpy as np
 import torch
 import torch.nn as nn
@@ -92,12 +93,16 @@ if __name__ == "__main__":
         criterionFreq = SpectralLoss(device)
 
         # setup optimizer
-        optimizer_g = optim.Adam(net_g.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
+        optimizer_g = optim.Adam(net_g.parameters(), lr=1e-3, betas=(opt.beta1, 0.999))
         optimizer_d = optim.Adam(net_d.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
         net_g_scheduler = get_scheduler(optimizer_g, opt)
         net_d_scheduler = get_scheduler(optimizer_d, opt)
     
         for epoch in range(opt.epoch_count, opt.niter + opt.niter_decay + 1):
+            net_g.train()
+
+            d_losses = list()
+            g_losses = list()
             train_losses = list()
             valid_losses = list()
             # train
@@ -153,23 +158,30 @@ if __name__ == "__main__":
         
                 t_iter.set_description(f"Epoch[{epoch}]: Loss_D: {round(float(loss_d.item()),5)} Loss_G: {round(float(loss_g.item()),5)}")
                 train_losses.append(loss_g_l1.item())
+                d_losses.append(loss_d.item())
+                g_losses.append(loss_g.item())
             update_learning_rate(net_g_scheduler, optimizer_g)
             update_learning_rate(net_d_scheduler, optimizer_d)
         
             # test
-            for iteration, (inputs, targets, masks) in enumerate(testing_data_loader, 1):
-        
-                inputs, targets = inputs.float().to(device), targets[:,1].unsqueeze(1).float().to(device)
-        
-                prediction = net_g(inputs)
-        
-                mae = criterionL1(prediction, targets)
-                valid_losses.append(mae)
+            net_g.eval()
+            with torch.no_grad():
+                t_iter = tqdm(enumerate(testing_data_loader, 1))
+                for iteration, (inputs, targets, masks) in t_iter:
             
+                    inputs, targets = inputs.float().to(device), targets[:,1].unsqueeze(1).float().to(device)
+            
+                    prediction = net_g(inputs)
+            
+                    loss = criterionL1(prediction, targets)
+                    valid_losses.append(loss.item())
+                    t_iter.set_description(f"Epoch[{epoch}]: Valid Loss_G {np.mean(valid_losses)}")
             wandb.log({
                 "epoch": epoch,
+                "d_loss": np.mean(d_losses),
+                "g_loss": np.mean(g_losses),
                 "A2: valid MAE": np.mean(valid_losses),
-                "A2: valid MAE": np.mean(train_losses)
+                "A2: train MAE": np.mean(train_losses)
             })
         
             #checkpoint
