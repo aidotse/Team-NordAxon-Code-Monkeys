@@ -210,31 +210,29 @@ if __name__ == "__main__":
                 torch.save({
                     'epoch': epoch + 1,
                     'best_valid_loss': best_valid_loss,
-                    'model_state_dict': net_g.state_dict(),
+                    'model_state_dict': net_g.state_dict()},
                     os.path.join(cfg["save_path"], 'g_best.pth')
-                })  
+                )  
                 
                 torch.save({
                     'epoch': epoch + 1,
                     'best_valid_loss': best_valid_loss,
-                    'model_state_dict': net_d.state_dict(),
+                    'model_state_dict': net_d.state_dict()},
                     os.path.join(cfg["save_path"], 'd_best.pth')
-                }) 
+                ) 
 
 
             # Save latest weights as checkpoints
             if cfg["save_checkpoints"]:
-                pass
-                """
                 torch.save({
                     'epoch': epoch + 1,
                     'best_valid_loss': best_valid_loss,
-                    'model_state_dict': net_g.state_dict(),
+                    'model_state_dict': net_g.state_dict()},
                     os.path.join(cfg["save_path"], 'g_last.pth')
-                    })
+                )
                 torch.save({
                     'epoch': epoch + 1,
                     'best_valid_loss': best_valid_loss,
-                    'model_state_dict': net_d.state_dict(),
+                    'model_state_dict': net_d.state_dict()},
                     os.path.join(cfg["save_path"], 'd_last.pth')
-                    })"""
+                )
