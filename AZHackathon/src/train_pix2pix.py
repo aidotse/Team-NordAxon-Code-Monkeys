@@ -166,9 +166,10 @@ if __name__ == "__main__":
                 loss_g_gan = criterionGAN(pred_fake, True)
         
                 # Second, G(A) = B
-                loss_g_l1 = criterionL1(fake_b, real_b) * opt.lamb + criterionFreq(fake_b, real_b)
-                
-                loss_g = loss_g_gan + loss_g_l1
+                loss_g_l1 = criterionL1(fake_b, real_b)
+                loss_g_spectral = criterionFreq(fake_b, real_b)
+
+                loss_g = loss_g_gan + loss_g_l1 * opt.lamb + loss_g_spectral
                 
                 loss_g.backward()
         
