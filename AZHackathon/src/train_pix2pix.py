@@ -1,8 +1,9 @@
 from __future__ import print_function
 import argparse
 import os
+import random
 
-import numpy as numpy
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -20,16 +21,19 @@ import wandb
 
 from gan.networks import define_G, define_D, GANLoss, get_scheduler, update_learning_rate
 
+# Ensure deterministic behavior
+torch.backends.cudnn.deterministic = True
+random.seed(hash("setting random seeds") % 2**32 - 1)
+np.random.seed(hash("improves reproducibility") % 2**32 - 1)
+torch.manual_seed(hash("by removing stochasticity") % 2**32 - 1)
+torch.cuda.manual_seed_all(hash("so runs are repeatable") % 2**32 - 1)
+
 if __name__ == "__main__":
     # Training settings
     parser = argparse.ArgumentParser(description='pix2pix-pytorch-implementation')
-    #parser.add_argument('--dataset', required=True, help='facades')
-    parser.add_argument('--batch_size', type=int, default=1, help='training batch size')
-    parser.add_argument('--test_batch_size', type=int, default=1, help='testing batch size')
     parser.add_argument('--direction', type=str, default='b2a', help='a2b or b2a')
     parser.add_argument('--input_nc', type=int, default=7, help='input image channels')
     parser.add_argument('--output_nc', type=int, default=1, help='output image channels')
-    parser.add_argument('--ngf', type=int, default=64, help='generator filters in first conv layer')
     parser.add_argument('--ndf', type=int, default=64, help='discriminator filters in first conv layer')
     parser.add_argument('--epoch_count', type=int, default=1, help='the starting epoch count')
     parser.add_argument('--niter', type=int, default=100, help='# of iter at starting learning rate')
@@ -38,9 +42,6 @@ if __name__ == "__main__":
     parser.add_argument('--lr_policy', type=str, default='lambda', help='learning rate policy: lambda|step|plateau|cosine')
     parser.add_argument('--lr_decay_iters', type=int, default=50, help='multiply by a gamma every lr_decay_iters iterations')
     parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for adam. default=0.5')
-    parser.add_argument('--cuda', action='store_true', help='use cuda?')
-    parser.add_argument('--threads', type=int, default=4, help='number of threads for data loader to use')
-    parser.add_argument('--seed', type=int, default=123, help='random seed to use. Default=123')
     parser.add_argument('--lamb', type=int, default=100, help='weight on L1 term in objective')
     opt = parser.parse_args()
 
@@ -68,8 +69,6 @@ if __name__ == "__main__":
     }
 
     with wandb.init(project="hackathon-astrazeneca", config=cfg):
-        if opt.cuda and not torch.cuda.is_available():
-            raise Exception("No GPU found, please run without --cuda")
     
         #cudnn.benchmark = Tru
         print("Loading datasets")
@@ -102,7 +101,8 @@ if __name__ == "__main__":
             train_losses = list()
             valid_losses = list()
             # train
-            for iteration, (inputs, targets, masks) in enumerate(training_data_loader, 1):
+            t_iter = tqdm(enumerate(training_data_loader, 1))
+            for iteration, (inputs, targets, masks) in t_iter:
         
                 # forward
                 real_a, real_b = inputs.float().to(device), targets[:,1].unsqueeze(1).float().to(device)
@@ -151,8 +151,7 @@ if __name__ == "__main__":
         
                 optimizer_g.step()
         
-                print("===> Epoch[{}]({}/{}): Loss_D: {:.4f} Loss_G: {:.4f}".format(
-                    epoch, iteration, len(training_data_loader), loss_d.item(), loss_g.item()))
+                t_iter.set_description(f"Epoch[{epoch}]: Loss_D: {round(float(loss_d.item()),5)} Loss_G: {round(float(loss_g.item()),5)}")
                 train_losses.append(loss_g_l1.item())
             update_learning_rate(net_g_scheduler, optimizer_g)
             update_learning_rate(net_d_scheduler, optimizer_d)
