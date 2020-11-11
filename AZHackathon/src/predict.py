@@ -1,89 +1,171 @@
-import os
-import random
-from time import time
+import os, glob
 from pathlib import Path
 
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 import numpy as np
+import cv2
 import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import DataLoader
+import torch.nn.functional as F
+import torchvision.transforms.functional as F2
 
+from utils.utils import get_image_metadata
 from models.unets import UnetResnet152
+from data.dataset import PredictionDataset
+
+
+
+def strided_predict(original_inputs, model, device, 
+                    crop_size:int=256, 
+                    stride:int=256, 
+                    output_channels:int=1, 
+                    batch_size:int=16
+    ) -> torch.Tensor:
+    assert crop_size >= stride # Crop size must be larger than stride
+    
+    sizes = np.array([2**i for i in range(10)])
+    b, c, w, h = original_inputs.shape
+    output_image = torch.zeros(b,output_channels,w,h)
+    output_counts = torch.zeros(w,h)
+
+    with torch.no_grad():
+        model.eval()
+        model.to(device)
+        
+        batch_tensors = list()
+        batch_metadata = list()
+        
+        for i in range(0, w-crop_size+stride, stride):
+            
+            for j in range(0, h-crop_size+stride, stride):
+
+                x = original_inputs[:,:,i:i+crop_size,j:j+crop_size]
+
+                # Resize rectangular tensors into allowed rectangular tensors
+                crop_shape = x.shape
+                
+                rectangle_flag = False
+                if x.shape[2] != crop_size:
+                    rectangle_flag = True
+                    idx = np.argmin(np.abs(sizes - x.shape[2]))
+                    x = F.interpolate(x, size=(sizes[idx], x.shape[3]))
+                if x.shape[3] != crop_size:
+                    rectangle_flag = True
+                    idx = np.argmin(np.abs(sizes - x.shape[3]))
+                    x = F.interpolate(x, size=(x.shape[2], sizes[idx]))
+                    
+                out = model(x.to(device)).detach().cpu()
+                out = F.interpolate(out, size=(crop_shape[2], crop_shape[3]))
+                output_counts[i:i+crop_size,j:j+crop_size] += torch.ones(crop_shape[2],crop_shape[3])
+                output_image[:,:,i:i+crop_size,j:j+crop_size] += out
+                
+                #TODO: Implement inference in batches for speed-up (see notebook)
+
+    output_image = output_image * (1 / output_counts)
+    return output_image
+
+def test_time_augmentation_predict(inputs, model, device, 
+                                   crop_size=256, 
+                                   stride=256, 
+                                   batched=True
+    ):
+    """
+    # 0 - x
+    # 1 - F.hflip(x)
+    # 2 - F.vflip(x)
+    # 3 - F.hflip(F.vflip(x))
+    # 4 - F.rotate(x, 90)
+    # 5 - F.rotate(F.hflip(x), 90)
+    # 6 - F.rotate(F.vflip(x), 90)
+    # 7 - F.rotate(F.hflip(F.vflip(x)), 90)
+    """
+    # Augment (~1 seconds)
+    inputs_0 = inputs
+    inputs_1 = F2.hflip(inputs_0)
+    inputs_2 = F2.vflip(inputs_0)
+    inputs_3 = F2.hflip(inputs_2)
+    inputs_4 = F2.rotate(inputs_0, 90, expand=True)
+    inputs_5 = F2.hflip(inputs_4)
+    inputs_6 = F2.vflip(inputs_4)
+    inputs_7 = F2.hflip(inputs_6)
+    
+    # Inference (~100 seconds GPU)
+    if batched:
+    
+        batched_inputs_0 = torch.cat([inputs_0, inputs_1, inputs_2, inputs_3], 0)
+        batched_inputs_1 = torch.cat([inputs_4, inputs_5, inputs_6, inputs_7], 0)
+        batched_outputs_0 = strided_predict(batched_inputs_0, model, device, crop_size=crop_size, stride=stride)
+        batched_outputs_1 = strided_predict(batched_inputs_1, model, device, crop_size=crop_size, stride=stride)
+        outputs_0 = batched_outputs_0[0].unsqueeze(0)
+        outputs_1 = batched_outputs_0[1].unsqueeze(0)
+        outputs_2 = batched_outputs_0[2].unsqueeze(0)
+        outputs_3 = batched_outputs_0[3].unsqueeze(0)
+        outputs_4 = batched_outputs_1[0].unsqueeze(0)
+        outputs_5 = batched_outputs_1[1].unsqueeze(0)
+        outputs_6 = batched_outputs_1[2].unsqueeze(0)
+        outputs_7 = batched_outputs_1[3].unsqueeze(0)
+                    
+    else:
+        outputs_0 = strided_predict(inputs_0, model, device, crop_size=crop_size, stride=stride)
+        outputs_1 = strided_predict(inputs_1, model, device, crop_size=crop_size, stride=stride)
+        outputs_2 = strided_predict(inputs_2, model, device, crop_size=crop_size, stride=stride)
+        outputs_3 = strided_predict(inputs_3, model, device, crop_size=crop_size, stride=stride)
+        outputs_4 = strided_predict(inputs_4, model, device, crop_size=crop_size, stride=stride)
+        outputs_5 = strided_predict(inputs_5, model, device, crop_size=crop_size, stride=stride)
+        outputs_6 = strided_predict(inputs_6, model, device, crop_size=crop_size, stride=stride)
+        outputs_7 = strided_predict(inputs_7, model, device, crop_size=crop_size, stride=stride)
+    
+    # Revert augmentation on predictions (~1 seconds)
+    outputs_1 = F2.hflip(outputs_1)
+    outputs_2 = F2.vflip(outputs_2)
+    outputs_3 = F2.vflip(F2.hflip(outputs_3))
+    outputs_4 = F2.rotate(outputs_4, -90, expand=True)
+    outputs_5 = F2.rotate(F2.hflip(outputs_5), -90, expand=True)
+    outputs_6 = F2.rotate(F2.vflip(outputs_6), -90, expand=True)
+    outputs_7 = F2.rotate(F2.vflip(F2.hflip(outputs_7)), -90, expand=True)
+    
+    outputs = outputs_0 + outputs_1 + outputs_2 + outputs_3 + outputs_4 + outputs_5 + outputs_6 + outputs_7
+    return outputs / 8
 
 if __name__ == "__main__":
+    # 1 Load model and weights
+    # 2 Create prediction dataset
+    # 3 Perform inference
+    # 4 Save images (and display plot + metrics)
     
-    cfg = {
-        "model_params": {
-            "class": "UnetResnet152",
-        },
-        "save_path": "weights",
-        "epochs": 400,
-        "num_workers": 16,
-        "save_checkpoints": True,
-        "load_checkpoint": True,#False,
-
-        "train_params": {
-            "batch_size": 32,
-            "shuffle": True,
-        },
-
-        "valid_params": {
-            "batch_size": 32,
-            "shuffle": False,
-        }
-    }
-
-    Path("output").mkdir(exist_ok=True, parents=True)
-
-    #train_dataset = AstraZenecaDataset("../data/training_dataset/train", transform=training_safe_augmentations)
-    #valid_dataset = AstraZenecaDataset("../data/training_dataset/valid", transform=None)
+    input_dir = "../data/03_training_data/normalized_bias/train/input/20x_images"
+    output_dir = "../data/04_generated_images/20x_images"
+    weights_path = "../../data/05_saved_models/A2_g_best.pth"
+    target_idx = 1 # {0: 'A1', 1: 'A2', 2: 'A3'}
     
-    dataset = ExampleDataset("../data/03_training_data/normalized_bias/valid", transform=test_augmentations(crop_size=(256,256)), test=True)
-
-    dataloader = DataLoader(dataset, batch_size=cfg["train_params"]["batch_size"], num_workers=cfg["num_workers"], shuffle=cfg["train_params"]["shuffle"])
-
-    # TODOS:
-    # |x| Save the latest weight and also save the latest weights
-    # - What is a scheduler?
-    # - Validation will use same metric for all models we will ever train
-    # - Train can use different trianing loss functions
-    # - What to log
-    # |x| Spectral regularizer
-    # - Gan training
+    Path(output_dir).mkdir(exist_ok=True, parents=True)
+    dataset = PredictionDataset(input_dir)
 
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
-
     model = UnetResnet152(output_channels=1)
-        
-    # Load checkpoints 
-    if cfg["load_checkpoint"]:
-        weight_file = os.path.join(cfg["save_path"], 'last.pth')
-        checkpoint = torch.load(weight_file, map_location=device)
-        epoch = checkpoint['epoch']
-        best_valid_loss = checkpoint['best_valid_loss']
-        model.load_state_dict(checkpoint['model_state_dict'])
-            
-        #optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
+    checkpoint = torch.load(weights_path, map_location=device)
+    model.load_state_dict(checkpoint['model_state_dict'])
     
-    model.to(device)
-    print(f"Starting from epoch {epoch}")
+    for inputs, input_filenames, output_filenames in tqdm(dataset):
+        x = torch.Tensor(inputs).unsqueeze(0)
+        output_image = test_time_augmentation_predict(x, model, device, crop_size=1024, stride=256)
         
-    model.eval()        
-    torch.set_grad_enabled(False)
-
-    with tqdm(total=len(valid_dataset), desc=f'Epoch {epoch + 1}/{cfg["epochs"]}', unit='img') as pbar:
-        for inputs in dataloader:
-            inputs = inputs.float()
-
-            inputs = inputs.to(device)
-            targets = targets[:,0].unsqueeze(1).to(device)            
+        generated_image = output_image[0,0].numpy().astype(np.uint16)
+        save_path = os.path.join(output_dir, output_filenames[target_idx])
+        success = cv2.imwrite(save_path, generated_image)
+        if success:
+            print(f"Successfully saved to {save_path}")
+        else:
+            print(f"Failed to save {save_path}")
             
-            preds = model(inputs)
-
-            pbar.set_postfix(**{'valid loss: ': np.mean(valid_losses)})
-            pbar.update(inputs.shape[0])
-    
-                        
+            
+        #plt.imshow(output_image[0,0])
+        #target_path = os.path.join(target_dir, output_filenames[target_idx])
+        #target_img = cv2.imread(target_path, -1)
+        #plt.imshow(target_img)
+        
+        # MAE computation
+        #plt.imshow((torch.Tensor(target_img.astype(np.float))-output_image)[0,0])
+        #(torch.Tensor(target_img.astype(np.float))-output_image).abs().mean()
+        
