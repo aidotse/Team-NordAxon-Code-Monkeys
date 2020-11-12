@@ -168,4 +168,4 @@ if __name__ == "__main__":
         # MAE computation
         #plt.imshow((torch.Tensor(target_img.astype(np.float))-output_image)[0,0])
         #(torch.Tensor(target_img.astype(np.float))-output_image).abs().mean()
-        
+
