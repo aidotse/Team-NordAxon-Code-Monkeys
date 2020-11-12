@@ -74,6 +74,35 @@ class UnetResnet152(nn.Module):
     def forward(self, x):
         return self.unet(x)
 
+
+class UnetResnet152v2(nn.Module):
+    def __init__(self, input_channels:int = 7, output_channels:int = 3):
+        super(UnetResnet152, self).__init__()
+
+        self.unet = smp.Unet(
+            'resnet152', 
+            in_channels=input_channels, 
+            encoder_weights='imagenet', 
+            classes=output_channels,
+            encoder_depth=5,
+            decoder_channels= (256, 128, 64, 32, 16)
+        )
+
+        # Change Up-Sampling kernel size
+        print(len(self.unet.decoder.blocks))
+        self.unet.decoder.blocks[4].conv2[0] = nn.Conv2d(
+            self.unet.decoder.blocks[4].conv2[0].in_channels,
+            self.unet.decoder.blocks[4].conv2[0].out_channels,
+            kernel_size=(5,5),
+            stride=self.unet.decoder.blocks[4].conv2[0].stride,
+            padding=(2,2),
+            bias=self.unet.decoder.blocks[4].conv2[0].bias
+        )
+        
+    def forward(self, x):
+        return self.unet(x)
+
+
 class UnetDpn92(nn.Module):
     def __init__(self, input_channels:int = 7, output_channels:int = 3):
         super(UnetDpn92, self).__init__()
