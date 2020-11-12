@@ -39,7 +39,7 @@ if __name__ == "__main__":
     parser.add_argument('--epoch_count', type=int, default=1, help='the starting epoch count')
     parser.add_argument('--niter', type=int, default=100, help='# of iter at starting learning rate')
     parser.add_argument('--niter_decay', type=int, default=100, help='# of iter to linearly decay learning rate to zero')
-    parser.add_argument('--lr', type=float, default=0.0002, help='initial learning rate for adam')
+    parser.add_argument('--lr', type=float, default=0.0001, help='initial learning rate for adam')
     parser.add_argument('--lr_policy', type=str, default='lambda', help='learning rate policy: lambda|step|plateau|cosine')
     parser.add_argument('--lr_decay_iters', type=int, default=50, help='multiply by a gamma every lr_decay_iters iterations')
     parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for adam. default=0.5')
@@ -53,12 +53,15 @@ if __name__ == "__main__":
           "class": "UnetResnet152v2",
         },
         "save_path": "weights",
+        "pretrained_generator":  "../data/05_saved_models/normalized_bias/A3_g_best.pth",
         "epochs": 800,
-        "num_workers": 16,
+        "num_workers": 32,
         "save_checkpoints": True,
         "load_checkpoint": False,#True,#False,
 
         "train_params": {
+            "d_lr": 1e-6,
+            "g_lr": 1e-3,
             "batch_size": 16,
             "shuffle": True,
         },
@@ -88,18 +91,29 @@ if __name__ == "__main__":
         net_d = define_D(opt.input_nc + opt.output_nc, opt.ndf, 'basic', gpu_id=device)
         wandb.watch(net_g, log="all")
     
-        criterionGAN = GANLoss().to(device)
+        criterionGAN = GANLoss(target_real_label=0.9, target_fake_label=0.1).to(device)
         criterionL1 = nn.L1Loss().to(device)
         criterionFreq = SpectralLoss(device)
 
         # setup optimizer
-        optimizer_g = optim.Adam(net_g.parameters(), lr=1e-3, betas=(opt.beta1, 0.999))
-        optimizer_d = optim.Adam(net_d.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
+        optimizer_g = optim.Adam(
+                net_g.parameters(), 
+                lr=cfg["train_params"]["g_lr"], 
+                betas=(opt.beta1, 0.999)
+                )
+        optimizer_d = optim.Adam(
+                net_d.parameters(), 
+                lr=cfg["train_params"]["d_lr"], 
+                betas=(opt.beta1, 0.999)
+                )
         net_g_scheduler = get_scheduler(optimizer_g, opt)
         net_d_scheduler = get_scheduler(optimizer_d, opt)
-
-
-                # Load checkpoints 
+        
+        # Experiment, load pre-trained Generator
+        state_dict = torch.load(cfg["pretrained_generator"], map_location=device)["model_state_dict"]
+        net_g.load_state_dict(state_dict)
+        
+        # Load checkpoints 
         if cfg["load_checkpoint"]:
             g_weight_file = os.path.join(cfg["save_path"], 'g_last.pth')
             g_checkpoint = torch.load(g_weight_file, map_location=device)
@@ -128,36 +142,37 @@ if __name__ == "__main__":
             for iteration, (inputs, targets, masks) in t_iter:
         
                 # forward
-                real_a, real_b = inputs.float().to(device), targets[:,1].unsqueeze(1).float().to(device)
+                real_a, real_b = inputs.float().to(device), targets[:,2].unsqueeze(1).float().to(device)
                 fake_b = net_g(real_a)
     
                 ######################
                 # (1) Update D network
                 ######################
     
-                optimizer_d.zero_grad()
+                if (iteration % 2) == 1:
+                    optimizer_d.zero_grad()
             
-                # train with fake
-                fake_ab = torch.cat((real_a, fake_b), 1)
-                pred_fake = net_d.forward(fake_ab.detach())
-                loss_d_fake = criterionGAN(pred_fake, False)
+                    # train with fake
+                    fake_ab = torch.cat((real_a, fake_b), 1)
+                    pred_fake = net_d.forward(fake_ab.detach())
+                    loss_d_fake = criterionGAN(pred_fake, False)
     
-                # train with real
-                real_ab = torch.cat((real_a, real_b), 1)
-                pred_real = net_d.forward(real_ab)
-                loss_d_real = criterionGAN(pred_real, True)
-                
-                # Combined D loss
-                loss_d = (loss_d_fake + loss_d_real) * 0.5
+                    # train with real
+                    real_ab = torch.cat((real_a, real_b), 1)
+                    pred_real = net_d.forward(real_ab)
+                    loss_d_real = criterionGAN(pred_real, True)
+                    
+                    # Combined D loss
+                    loss_d = (loss_d_fake + loss_d_real) * 0.5
     
-                loss_d.backward()
+                    loss_d.backward()
             
-                optimizer_d.step()
-    
+                    optimizer_d.step()
+        
                 ######################
                 # (2) Update G network
                 ######################
-        
+
                 optimizer_g.zero_grad()
         
                 # First, G(A) should fake the discriminator
@@ -188,7 +203,7 @@ if __name__ == "__main__":
                 t_iter = tqdm(enumerate(testing_data_loader, 1))
                 for iteration, (inputs, targets, masks) in t_iter:
             
-                    inputs, targets = inputs.float().to(device), targets[:,1].unsqueeze(1).float().to(device)
+                    inputs, targets = inputs.float().to(device), targets[:,2].unsqueeze(1).float().to(device)
             
                     prediction = net_g(inputs)
             
@@ -199,8 +214,8 @@ if __name__ == "__main__":
                 "epoch": epoch,
                 "d_loss": np.mean(d_losses),
                 "g_loss": np.mean(g_losses),
-                "A2: valid MAE": np.mean(valid_losses),
-                "A2: train MAE": np.mean(train_losses)
+                "A3: valid MAE": np.mean(valid_losses),
+                "A3: train MAE": np.mean(train_losses)
             })
 
             # If validation score improves, save the weights
