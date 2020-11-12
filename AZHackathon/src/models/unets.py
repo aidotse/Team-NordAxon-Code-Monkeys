@@ -77,7 +77,7 @@ class UnetResnet152(nn.Module):
 
 class UnetResnet152v2(nn.Module):
     def __init__(self, input_channels:int = 7, output_channels:int = 3):
-        super(UnetResnet152, self).__init__()
+        super(UnetResnet152v2, self).__init__()
 
         self.unet = smp.Unet(
             'resnet152', 
