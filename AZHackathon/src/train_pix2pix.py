@@ -11,7 +11,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 import torch.backends.cudnn as cudnn
 
-from data.dataset import ExampleDataset
+from data.dataset import ExampleDataset, SingleMagnificationDataset
 from data.augmentations import affine_augmentations, test_augmentations
 import models.network as network, utils.gan_util as util
 from models.unets import UnetResnet152v2
@@ -32,7 +32,7 @@ torch.cuda.manual_seed_all(hash("so runs are repeatable") % 2**32 - 1)
 if __name__ == "__main__":
     # Training settings
     parser = argparse.ArgumentParser(description='pix2pix-pytorch-implementation')
-    parser.add_argument('--direction', type=str, default='b2a', help='a2b or b2a')
+    parser.add_argument('--magnification', type=str, default=None, help='20, 40 or 60')
     parser.add_argument('--input_nc', type=int, default=7, help='input image channels')
     parser.add_argument('--output_nc', type=int, default=1, help='output image channels')
     parser.add_argument('--ndf', type=int, default=64, help='discriminator filters in first conv layer')
@@ -78,9 +78,23 @@ if __name__ == "__main__":
         print("Loading datasets")
         
         # data_loader
-        train_set = ExampleDataset("../data/03_training_data/normalized_bias/train", transform=affine_augmentations())
-        test_set = ExampleDataset("../data/03_training_data/normalized_bias/valid", transform=test_augmentations(crop_size=(256,256)))
-    
+        if opt.magnification is None:
+            train_set = ExampleDataset("../data/03_training_data/normalized_bias/train", transform=affine_augmentations())
+            test_set = ExampleDataset("../data/03_training_data/normalized_bias/valid", transform=test_augmentations(crop_size=(256,256)))
+        else:
+            magnifications = {
+                "20": "20x_images",
+                "40": "40x_images",
+                "60": "60x_images"
+            }
+            if magnifications.get(opt.magnification) is None:
+                print("Enter '--magnification' as either 20, 40 or 60")
+            
+            magnification = magnifications[opt.magnification]
+            print(f"Training on magnification {magnification}")
+            train_set = SingleMagnificationDataset("../data/03_training_data/normalized_bias/train", magnification, transform=affine_augmentations())
+            test_set = SingleMagnificationDataset("../data/03_training_data/normalized_bias/valid", magnification, transform=test_augmentations(crop_size=(256,256)))
+
         training_data_loader = DataLoader(train_set, batch_size=cfg["train_params"]["batch_size"], num_workers=cfg["num_workers"], shuffle=cfg["train_params"]["shuffle"])
         testing_data_loader = DataLoader(test_set, batch_size=cfg["valid_params"]["batch_size"], num_workers=cfg["num_workers"], shuffle=cfg["valid_params"]["shuffle"])
     
