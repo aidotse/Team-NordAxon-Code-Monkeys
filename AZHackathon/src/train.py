@@ -34,7 +34,7 @@ if __name__ == "__main__":
 
     cfg = {
         "model_params": {
-            "class": "UnetResnet152",
+            "class": "UnetResnet152v2",
         },
         "save_path": "weights",
         "epochs": 800,
@@ -80,7 +80,7 @@ if __name__ == "__main__":
         train_losses = list()
         valid_losses = list()
 
-        model = UnetResnet152(output_channels=1)
+        model = UnetResnet152v2(output_channels=1)
         wandb.watch(model, log="all")
         criterion = nn.L1Loss(reduction="mean")
         freq_criterion = SpectralLoss(device)

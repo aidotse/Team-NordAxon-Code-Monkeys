@@ -14,7 +14,7 @@ import torch.backends.cudnn as cudnn
 from data.dataset import ExampleDataset
 from data.augmentations import affine_augmentations, test_augmentations
 import models.network as network, utils.gan_util as util
-from models.unets import UnetResnet152
+from models.unets import UnetResnet152v2
 from utils.losses import SpectralLoss
 # Init wandb
 import wandb
@@ -50,7 +50,7 @@ if __name__ == "__main__":
 
     cfg = {
         "model_params": {
-          "class": "UnetResnet152",
+          "class": "UnetResnet152v2",
         },
         "save_path": "weights",
         "epochs": 800,
@@ -84,7 +84,7 @@ if __name__ == "__main__":
         device = "cuda:0" if torch.cuda.is_available() else "cpu"
     
         print('===> Building models')
-        net_g = UnetResnet152(input_channels=7, output_channels=1).to(device)
+        net_g = UnetResnet152v2(input_channels=7, output_channels=1).to(device)
         net_d = define_D(opt.input_nc + opt.output_nc, opt.ndf, 'basic', gpu_id=device)
         wandb.watch(net_g, log="all")
     
