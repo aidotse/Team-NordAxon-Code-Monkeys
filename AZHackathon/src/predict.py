@@ -1,4 +1,4 @@
-import os, glob
+import os, glob, argparse
 from pathlib import Path
 
 from tqdm import tqdm
@@ -128,15 +128,24 @@ def test_time_augmentation_predict(inputs, model, device,
     return outputs / 8
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='pix2pix-pytorch-implementation')
+    parser.add_argument('--input_dir', type=str, default='../data/03_training_data/normalized_bias/train/input/20x_images', help='a2b or b2a')
+    parser.add_argument('--output_dir', type=str, default="../data/04_generated_images/20x_images", help='input image channels')
+    parser.add_argument('--weights_path', type=str, default="../../data/05_saved_models/A2_g_best.pth", help='output image channels')
+    parser.add_argument('--target', type=str, default="A2", help="'A1', 'A2', 'A3' or 'all'")
+
+    opt = parser.parse_args()
+
     # 1 Load model and weights
     # 2 Create prediction dataset
     # 3 Perform inference
     # 4 Save images (and display plot + metrics)
     
-    input_dir = "../data/03_training_data/normalized_bias/train/input/20x_images"
-    output_dir = "../data/04_generated_images/20x_images"
-    weights_path = "../../data/05_saved_models/A2_g_best.pth"
-    target_idx = 1 # {0: 'A1', 1: 'A2', 2: 'A3'}
+    input_dir = opt.input_dir #"../data/03_training_data/normalized_bias/train/input/20x_images"
+    output_dir = opt.output_dir #"../data/04_generated_images/20x_images"
+    weights_path = opt.weight_path #"../../data/05_saved_models/A2_g_best.pth"
+    target = opt.target # 
+    target_idx = {'A1':0, 'A2':1, 'A3':2}[target]
     
     Path(output_dir).mkdir(exist_ok=True, parents=True)
     dataset = PredictionDataset(input_dir)
