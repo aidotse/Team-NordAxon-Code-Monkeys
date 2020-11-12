@@ -43,7 +43,7 @@ if __name__ == "__main__":
     parser.add_argument('--lr_policy', type=str, default='lambda', help='learning rate policy: lambda|step|plateau|cosine')
     parser.add_argument('--lr_decay_iters', type=int, default=50, help='multiply by a gamma every lr_decay_iters iterations')
     parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for adam. default=0.5')
-    parser.add_argument('--lamb', type=int, default=100, help='weight on L1 term in objective')
+    parser.add_argument('--lamb', type=int, default=1, help='weight on L1 term in objective')
     opt = parser.parse_args()
 
     print(opt)
@@ -110,9 +110,9 @@ if __name__ == "__main__":
         net_d_scheduler = get_scheduler(optimizer_d, opt)
         
         # Experiment, load pre-trained Generator
-        state_dict = torch.load(cfg["pretrained_generator"], map_location=device)["model_state_dict"]
+        """state_dict = torch.load(cfg["pretrained_generator"], map_location=device)["model_state_dict"]
         net_g.load_state_dict(state_dict)
-        
+        """
         # Load checkpoints 
         if cfg["load_checkpoint"]:
             g_weight_file = os.path.join(cfg["save_path"], 'g_last.pth')
@@ -149,7 +149,7 @@ if __name__ == "__main__":
                 # (1) Update D network
                 ######################
     
-                if (iteration % 2) == 1:
+                if (iteration % 3) == 1:
                     optimizer_d.zero_grad()
             
                     # train with fake

@@ -137,13 +137,13 @@ if __name__ == "__main__":
     opt = parser.parse_args()
 
     # 1 Load model and weights
-    # 2 Create prediction dataset
-    # 3 Perform inference
+    # 2 Create prediction datase
+    
     # 4 Save images (and display plot + metrics)
     
     input_dir = opt.input_dir #"../data/03_training_data/normalized_bias/train/input/20x_images"
     output_dir = opt.output_dir #"../data/04_generated_images/20x_images"
-    weights_path = opt.weight_path #"../../data/05_saved_models/A2_g_best.pth"
+    weights_path = opt.weights_path #"../../data/05_saved_models/A2_g_best.pth"
     target = opt.target # 
     target_idx = {'A1':0, 'A2':1, 'A3':2}[target]
     
@@ -155,8 +155,10 @@ if __name__ == "__main__":
 
     checkpoint = torch.load(weights_path, map_location=device)
     model.load_state_dict(checkpoint['model_state_dict'])
-    
-    for inputs, input_filenames, output_filenames in tqdm(dataset):
+   
+    dataset_length = len(dataset)
+    for i in tqdm(range(dataset_length)):
+        inputs, input_filenames, output_filenames = dataset[i]
         x = torch.Tensor(inputs).unsqueeze(0)
         output_image = test_time_augmentation_predict(x, model, device, crop_size=1024, stride=256)
         
