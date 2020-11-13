@@ -222,8 +222,24 @@ class UnetResnext101_32x8d(nn.Module):
         """
 
     def forward(self, x):
-        return self.unet(x)    
+        return self.unet(x)  
+      
+class UnetSegmentationResnet152(nn.Module):
+    def __init__(self, input_channels:int = 7, output_channels:int = 3):
+        super(UnetSegmentationResnet152, self).__init__()
 
+        self.unet = smp.Unet(
+            'resnet152', 
+            in_channels=input_channels, 
+            encoder_weights='imagenet', 
+            classes=output_channels,
+            encoder_depth=5,
+            decoder_channels= (256, 128, 64, 32, 16)
+        )
+
+    def forward(self, x):
+        return self.unet(x)    
+    
 if __name__ == "__main__":
     # Testing the models for correcteness
     
@@ -251,3 +267,4 @@ if __name__ == "__main__":
             print("Output max value:", output.max(), ",", "Output min shape:", output.min())
         
         print("\n")
+
