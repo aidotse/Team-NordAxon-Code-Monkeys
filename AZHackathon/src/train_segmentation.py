@@ -36,7 +36,7 @@ if __name__ == "__main__":
         "epochs": 400,
         "num_workers": 16,
         "save_checkpoints": True,
-        "load_checkpoint": True,#False,
+        "load_checkpoint": False,
 
         "train_params": {
             "batch_size": 32,
