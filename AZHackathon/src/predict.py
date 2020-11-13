@@ -133,6 +133,7 @@ if __name__ == "__main__":
     parser.add_argument('--output_dir', type=str, default="../data/04_generated_images/20x_images", help='input image channels')
     parser.add_argument('--weights_path', type=str, default="../../data/05_saved_models/A2_g_best.pth", help='output image channels')
     parser.add_argument('--target', type=str, default="A2", help="'A1', 'A2', 'A3' or 'all'")
+    parser.add_argument('--mask', action='store_true')
 
     opt = parser.parse_args()
 
@@ -151,7 +152,10 @@ if __name__ == "__main__":
     dataset = PredictionDataset(input_dir)
 
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
-    model = UnetResnet152(output_channels=1)
+    if opt.masks:
+        model = UnetSegmentationResnet152(output_channels=1)
+    else:
+        model = UnetResnet152v2(output_channels=1)
 
     checkpoint = torch.load(weights_path, map_location=device)
     model.load_state_dict(checkpoint['model_state_dict'])
@@ -162,7 +166,10 @@ if __name__ == "__main__":
         x = torch.Tensor(inputs).unsqueeze(0)
         output_image = test_time_augmentation_predict(x, model, device, crop_size=1024, stride=256)
         
-        generated_image = output_image[0,0].numpy().astype(np.uint16)
+        if opt.mask:
+            generated_image = output_image[0,0].numpy().astype(np.uint16)
+        else:
+            generated_image = output_image[0,0].numpy().astype(np.uint8)
         save_path = os.path.join(output_dir, output_filenames[target_idx])
         success = cv2.imwrite(save_path, generated_image)
         if success:
