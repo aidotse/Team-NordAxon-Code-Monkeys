@@ -114,7 +114,7 @@ class UnetResnet152v3(nn.Module):
             encoder_weights='imagenet', 
             classes=output_channels,
             encoder_depth=5,
-            decoder_channels= (512, 256, 128, 64, 32)
+            decoder_channels= (1024, 512, 256, 128, 64)
         )
 
         # Change Up-Sampling kernel size

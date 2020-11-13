@@ -14,7 +14,7 @@ import torch.backends.cudnn as cudnn
 from data.dataset import ExampleDataset, SingleMagnificationDataset
 from data.augmentations import affine_augmentations, test_augmentations
 import models.network as network, utils.gan_util as util
-from models.unets import UnetResnet152v2
+from models.unets import UnetResnet152v2, UnetResnet152v3
 from utils.losses import SpectralLoss
 # Init wandb
 import wandb
@@ -43,7 +43,7 @@ if __name__ == "__main__":
     parser.add_argument('--lr_policy', type=str, default='lambda', help='learning rate policy: lambda|step|plateau|cosine')
     parser.add_argument('--lr_decay_iters', type=int, default=50, help='multiply by a gamma every lr_decay_iters iterations')
     parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for adam. default=0.5')
-    parser.add_argument('--lamb', type=int, default=1, help='weight on L1 term in objective')
+    parser.add_argument('--lamb', type=int, default=2e-2, help='weight on L1 term in objective')
     opt = parser.parse_args()
 
     print(opt)
@@ -61,7 +61,7 @@ if __name__ == "__main__":
 
         "train_params": {
             "d_lr": 1e-6,
-            "g_lr": 1e-3,
+            "g_lr": 1e-4,
             "batch_size": 16,
             "shuffle": True,
         },
@@ -101,7 +101,7 @@ if __name__ == "__main__":
         device = "cuda:0" if torch.cuda.is_available() else "cpu"
     
         print('===> Building models')
-        net_g = UnetResnet152v2(input_channels=7, output_channels=1).to(device)
+        net_g = UnetResnet152v3(input_channels=7, output_channels=1).to(device)
         net_d = define_D(opt.input_nc + opt.output_nc, opt.ndf, 'basic', gpu_id=device)
         wandb.watch(net_g, log="all")
     
