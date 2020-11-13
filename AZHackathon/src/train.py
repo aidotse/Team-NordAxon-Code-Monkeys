@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 
 from data.augmentations import affine_augmentations, test_augmentations
 from data.dataset import ExampleDataset
-from models.unets import UnetResnet152
+from models.unets import UnetResnet152, UnetResnet152v2
 from utils.losses import SpectralLoss
 
 
@@ -122,7 +122,7 @@ if __name__ == "__main__":
                     inputs, targets, masks = inputs.float(), targets.float(), masks.float()
 
                     
-                    print(masks.shape, inputs.shape, masks[:,target_idx].unsqueeze(1).shape)
+                    
                     if opt.mask_input:
                         inputs = torch.cat([
                             inputs, 
@@ -183,8 +183,8 @@ if __name__ == "__main__":
 
             wandb.log({
                 "epoch":epoch, 
-                "A3: train MAE": np.mean(train_losses),
-                "A3: valid MAE": np.mean(valid_losses),
+                f"{opt.target}: train MAE": np.mean(train_losses),
+                f"{opt.target}: valid MAE": np.mean(valid_losses),
                 "data loading time": time_1 - time_0,
                 "forward pass time": time_2 - time_1,
                 "backpropagation time": time_0 - time_2,
