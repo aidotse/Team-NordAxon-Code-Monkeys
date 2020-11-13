@@ -214,7 +214,7 @@ class SingleMagnificationDataset(Dataset):
 
         return input, output, mask
 
-class PredctionDataset(Dataset):
+class PredictionDataset(Dataset):
     def __init__(self, dir_path, crop_size=(256,256), transform=None):
         """Prediction dataset for sample images for the Astra Zeneca competition
         
