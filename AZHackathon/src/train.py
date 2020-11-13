@@ -1,4 +1,4 @@
-import os
+import os, argparse
 import random
 from time import time
 from pathlib import Path
@@ -28,9 +28,13 @@ torch.cuda.manual_seed_all(hash("so runs are repeatable") % 2**32 - 1)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--target', required=True, default='A',  help="Either 'A1', 'A2' or 'A3'")
+    parser.add_argument('--target', type=str, required=True, default='A2',  help="Either 'A1', 'A2' or 'A3'")
+    parser.add_argument('--experimental-augmentations', type=bool, default=False,  help="Use affine- (safe) or experimental (risky) augmentations")
+    parser.add_argument('--mask-input', type=bool, default=False,  help="Train with masks as additional input")
     opt = parser.parse_args()
     print(opt)
+    
+    target_idx = {"A1": 0, "A2": 1, "A3": 2}[opt.target]
 
     cfg = {
         "model_params": {
@@ -58,29 +62,30 @@ if __name__ == "__main__":
         #train_dataset = AstraZenecaDataset("../data/training_dataset/train", transform=training_safe_augmentations)
         #valid_dataset = AstraZenecaDataset("../data/training_dataset/valid", transform=None)
     
-        train_dataset = ExampleDataset("../data/03_training_data/normalized_bias/train", transform=affine_augmentations())
+        if opt.experimental_augmentations:
+            train_dataset = ExampleDataset("../data/03_training_data/normalized_bias/train", transform=all_augmentations())
+        else:
+            train_dataset = ExampleDataset("../data/03_training_data/normalized_bias/train", transform=affine_augmentations())
         valid_dataset = ExampleDataset("../data/03_training_data/normalized_bias/valid", transform=test_augmentations(crop_size=(256,256)), test=True)
 
         train_dataloader = DataLoader(train_dataset, batch_size=cfg["train_params"]["batch_size"], num_workers=cfg["num_workers"], shuffle=cfg["train_params"]["shuffle"])
         valid_dataloader = DataLoader(valid_dataset, batch_size=cfg["valid_params"]["batch_size"], num_workers=cfg["num_workers"], shuffle=cfg["valid_params"]["shuffle"])
 
-        # TODOS:
-        # |x| Save the latest weight and also save the latest weights
+        # TODO:
         # - What is a scheduler?
-        # - Validation will use same metric for all models we will ever train
         # - Train can use different trianing loss functions
         # - What to log
-        # |x| Spectral regularizer
-        # - Gan training
 
 
         device = "cuda:0" if torch.cuda.is_available() else "cpu"
-        #device = "cpu"
 
         train_losses = list()
         valid_losses = list()
-
-        model = UnetResnet152v2(output_channels=1)
+        
+        if opt.mask_input:
+            model = UnetResnet152v2(input_channels=8, output_channels=1)
+        else:
+            model = UnetResnet152v2(input_channels=7, output_channels=1)
         wandb.watch(model, log="all")
         criterion = nn.L1Loss(reduction="mean")
         freq_criterion = SpectralLoss(device)
@@ -93,8 +98,7 @@ if __name__ == "__main__":
             epoch = checkpoint['epoch']
             best_valid_loss = checkpoint['best_valid_loss']
             model.load_state_dict(checkpoint['model_state_dict'])
-            
-            #optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+
         else:
             epoch = 0
             best_valid_loss = 1e100
@@ -115,13 +119,20 @@ if __name__ == "__main__":
                 for inputs, targets, masks in train_dataloader:
                     
                     time_1 = time()
-
                     inputs, targets, masks = inputs.float(), targets.float(), masks.float()
 
-                    inputs = inputs.to(device)
-                
-                    "targets_masks = torch.cat([targets[:,0].unsqueeze(1), masks[:,0].unsqueeze(1)], axis=1).to(device)"
-                    targets = targets[:,2].unsqueeze(1).to(device)
+                    
+                    print(masks.shape, inputs.shape, masks[:,target_idx].unsqueeze(1).shape)
+                    if opt.mask_input:
+                        inputs = torch.cat([
+                            inputs, 
+                            masks[:,target_idx].unsqueeze(1)
+                            ], dim=1)
+                        inputs = inputs.to(device)
+                    else:
+                        inputs = inputs.to(device)
+                    
+                    targets = targets[:,target_idx].unsqueeze(1).to(device)
                 
                     preds = model(inputs)
                     
@@ -148,8 +159,16 @@ if __name__ == "__main__":
                 for inputs, targets, masks in valid_dataloader:
                     inputs, targets, masks = inputs.float(), targets.float(), masks.float()
 
-                    inputs = inputs.to(device)
-                    targets = targets[:,2].unsqueeze(1).to(device)
+                    if opt.mask_input:
+                        inputs = torch.cat([
+                            inputs, 
+                            masks[:,target_idx].unsqueeze(1)
+                            ], dim=1)
+                        inputs = inputs.to(device)
+                    else:
+                        inputs = inputs.to(device)
+                        
+                    targets = targets[:,target_idx].unsqueeze(1).to(device)
                 
                     preds = model(inputs)
 

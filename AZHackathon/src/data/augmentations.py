@@ -168,7 +168,6 @@ def affine_augmentations():
     channels_last = ChannelChange((1,2,0))
     channels_first = ChannelChange((2,0,1))
     transpose = Transpose() 
-    scale = Scale((512,512))
     transforms = A.Compose([
         channels_last,
         RandomResizeCrop(),
@@ -176,7 +175,6 @@ def affine_augmentations():
         hflip,
         rotate,
         transpose,
-        #scale,
         channels_first
         ])
     return transforms
@@ -192,7 +190,6 @@ def all_augmentations():
     elastic = ElasticTransform()
     grid_distortion = GridDistortion()
     brightness_contrast = RandomBrightnessContrast() # wants the input as float32
-    norm = Normalize()
     channel_shuffle = ChannelShuffle()
     gaussian_blur = GaussianBlur()
     median_blur = MedianBlur()
@@ -206,7 +203,6 @@ def all_augmentations():
         hflip,
         rotate,
         transpose,
-        #scale,
         gaussian_blur,
         elastic,
         grid_distortion,
@@ -217,21 +213,11 @@ def all_augmentations():
     return transforms
 
 def test_augmentations(crop_size=(1024,1024)):
-    #vflip = VerticalFlip()
-    #hflip = HorizontalFlip() 
-    #rotate = Rotate()
     channels_last = ChannelChange((1,2,0))
     channels_first = ChannelChange((2,0,1))
-    #transpose = Transpose() 
-    #cale = Scale((512,512))
     transforms = A.Compose([
         channels_last,
         RandomResizeCrop(crop_size=crop_size),
-        #vflip,
-        #hflip,
-        #rotate,
-        #transpose,
-        #scale,
         channels_first
         ])
     return transforms
