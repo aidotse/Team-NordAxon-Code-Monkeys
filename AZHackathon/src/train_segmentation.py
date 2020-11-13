@@ -10,7 +10,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
-from data.augmentations import affine_augmentations, test_augmentations
+from data.augmentations import all_augmentations, affine_augmentations, test_augmentations
 from data.dataset import ExampleDataset
 from models.unets import UnetSegmentationResnet152
 from utils.losses import SpectralLoss
@@ -55,6 +55,7 @@ if __name__ == "__main__":
         #valid_dataset = AstraZenecaDataset("../data/training_dataset/valid", transform=None)
     
         train_dataset = ExampleDataset("../data/03_training_data/normalized_bias/train", transform=affine_augmentations())
+        #train_dataset = ExampleDataset("../data/03_training_data/normalized_bias/train", transform=all_augmentations())
         valid_dataset = ExampleDataset("../data/03_training_data/normalized_bias/valid", transform=test_augmentations(crop_size=(256,256)), test=True)
 
         train_dataloader = DataLoader(train_dataset, batch_size=cfg["train_params"]["batch_size"], num_workers=cfg["num_workers"], shuffle=cfg["train_params"]["shuffle"])
