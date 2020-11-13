@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 
 from data.augmentations import affine_augmentations, test_augmentations
 from data.dataset import ExampleDataset
-from models.unets import UnetResnet152
+from models.unets import UnetSegmentationResnet152
 from utils.losses import SpectralLoss
 
 
@@ -60,26 +60,13 @@ if __name__ == "__main__":
         train_dataloader = DataLoader(train_dataset, batch_size=cfg["train_params"]["batch_size"], num_workers=cfg["num_workers"], shuffle=cfg["train_params"]["shuffle"])
         valid_dataloader = DataLoader(valid_dataset, batch_size=cfg["valid_params"]["batch_size"], num_workers=cfg["num_workers"], shuffle=cfg["valid_params"]["shuffle"])
 
-        # TODOS:
-        # |x| Save the latest weight and also save the latest weights
-        # - What is a scheduler?
-        # - Validation will use same metric for all models we will ever train
-        # - Train can use different trianing loss functions
-        # - What to log
-        # |x| Spectral regularizer
-        # - Gan training
-
-
         device = "cuda:0" if torch.cuda.is_available() else "cpu"
-        #device = "cpu"
 
         train_losses = list()
         valid_losses = list()
 
-        model = UnetResnet152(output_channels=1)
+        model = UnetSegmentationResnet152(output_channels=1)
         wandb.watch(model, log="all")
-        #criterion = nn.L1Loss(reduction="mean")
-        #freq_criterion = SpectralLoss(device)
         criterion = nn.BCEWithLogitsLoss()
         optimizer = optim.Adam(model.parameters())
     
@@ -90,8 +77,7 @@ if __name__ == "__main__":
             epoch = checkpoint['epoch']
             best_valid_loss = checkpoint['best_valid_loss']
             model.load_state_dict(checkpoint['model_state_dict'])
-            
-            #optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        
         else:
             epoch = 0
             best_valid_loss = 1e100
@@ -114,10 +100,8 @@ if __name__ == "__main__":
                     time_1 = time()
 
                     inputs, targets, masks = inputs.float(), targets.float(), masks.float()
-
                     inputs = inputs.to(device)
                 
-                    "targets_masks = torch.cat([targets[:,0].unsqueeze(1), masks[:,0].unsqueeze(1)], axis=1).to(device)"
                     targets = masks[:,0].unsqueeze(1).to(device)
                 
                     preds = model(inputs)
@@ -161,8 +145,8 @@ if __name__ == "__main__":
 
             wandb.log({
                 "epoch":epoch, 
-                "train BCE": np.mean(train_losses),
-                "valid BCE": np.mean(valid_losses),
+                "A1 train BCE": np.mean(train_losses),
+                "A1 valid BCE": np.mean(valid_losses),
                 "data loading time": time_1 - time_0,
                 "forward pass time": time_2 - time_1,
                 "backpropagation time": time_0 - time_2,
@@ -189,4 +173,4 @@ if __name__ == "__main__":
                     os.path.join(cfg["save_path"], 'last.pth')
                     )
 
-        torch.save(net.state_dict(), f'last{epoch + 1}.pth')
+        torch.save(model.state_dict(), f'last{epoch + 1}.pth')
