@@ -33,6 +33,7 @@ if __name__ == "__main__":
     # Training settings
     parser = argparse.ArgumentParser(description='pix2pix-pytorch-implementation')
     parser.add_argument('--mask-input', action="store_true", help='use masks in inputs')
+    parser.add_argument('--target', type=str, required=True, default='A2',  help="Either 'A1', 'A2' or 'A3'")
     parser.add_argument('--magnification', type=str, default=None, help='20, 40 or 60')
     parser.add_argument('--input_nc', type=int, default=7, help='input image channels')
     parser.add_argument('--output_nc', type=int, default=1, help='output image channels')
@@ -47,6 +48,8 @@ if __name__ == "__main__":
     opt = parser.parse_args()
 
     print(opt)
+    
+    target_idx = {"A1": 0, "A2": 1, "A3": 2}[opt.target]
 
     cfg = {
         "model_params": {
@@ -167,7 +170,7 @@ if __name__ == "__main__":
                         masks[:,target_idx].unsqueeze(1)
                     ], dim=1)
                 
-                real_a, real_b = inputs.float().to(device), targets[:,2].unsqueeze(1).float().to(device)
+                real_a, real_b = inputs.float().to(device), targets[:,target_idx].unsqueeze(1).float().to(device)
                 fake_b = net_g(real_a)
     
                 ######################
@@ -233,7 +236,7 @@ if __name__ == "__main__":
                             inputs, 
                             masks[:,target_idx].unsqueeze(1)
                         ], dim=1)
-                    inputs, targets = inputs.float().to(device), targets[:,2].unsqueeze(1).float().to(device)
+                    inputs, targets = inputs.float().to(device), targets[:,target_idx].unsqueeze(1).float().to(device)
             
                     prediction = net_g(inputs)
             
@@ -244,8 +247,8 @@ if __name__ == "__main__":
                 "epoch": epoch,
                 "d_loss": np.mean(d_losses),
                 "g_loss": np.mean(g_losses),
-                "A3: valid MAE": np.mean(valid_losses),
-                "A3: train MAE": np.mean(train_losses)
+                f"{opt.target}: valid MAE": np.mean(valid_losses),
+                f"{opt.target}: train MAE": np.mean(train_losses)
             })
 
             # If validation score improves, save the weights
