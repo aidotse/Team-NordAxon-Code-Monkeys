@@ -7,7 +7,7 @@ import torch
 from torch.utils.data import Dataset
 
 from utils.utils import get_image_metadata
-class ExampleDataset(Dataset):
+class AstraZenecaTrainingDataset(Dataset):
 
     def __init__(self, dataset_path, crop_size=(256,256), transform=None, test=False):
         """Example dataset for sample images for the Astra Zeneca competition

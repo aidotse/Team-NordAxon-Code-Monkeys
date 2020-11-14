@@ -11,9 +11,9 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from data.augmentations import all_augmentations, affine_augmentations, test_augmentations
-from data.dataset import ExampleDataset
-from models.unets import UnetSegmentationResnet152
-from utils.losses import SpectralLoss
+from data.dataset import AstraZenecaTrainingDataset
+from models.unets import UnetSegmentationResnet152, UnetResnet152v2
+from utils.losses import SpectralLoss, BinaryDiceLoss
 
 
 # Init wandb
@@ -51,12 +51,9 @@ if __name__ == "__main__":
     with wandb.init(project="hackathon-astrazeneca", config=cfg):
         Path(cfg["save_path"]).mkdir(exist_ok=True, parents=True)
 
-        #train_dataset = AstraZenecaDataset("../data/training_dataset/train", transform=training_safe_augmentations)
-        #valid_dataset = AstraZenecaDataset("../data/training_dataset/valid", transform=None)
-    
-        train_dataset = ExampleDataset("../data/03_training_data/normalized_bias/train", transform=affine_augmentations())
-        #train_dataset = ExampleDataset("../data/03_training_data/normalized_bias/train", transform=all_augmentations())
-        valid_dataset = ExampleDataset("../data/03_training_data/normalized_bias/valid", transform=test_augmentations(crop_size=(256,256)), test=True)
+        train_dataset = AstraZenecaTrainingDataset("../data/03_training_data/normalized_bias/train", transform=affine_augmentations())
+        #train_dataset = AstraZenecaTrainingDataset("../data/03_training_data/normalized_bias/train", transform=all_augmentations())
+        valid_dataset = AstraZenecaTrainingDataset("../data/03_training_data/normalized_bias/valid", transform=test_augmentations(crop_size=(256,256)), test=True)
 
         train_dataloader = DataLoader(train_dataset, batch_size=cfg["train_params"]["batch_size"], num_workers=cfg["num_workers"], shuffle=cfg["train_params"]["shuffle"])
         valid_dataloader = DataLoader(valid_dataset, batch_size=cfg["valid_params"]["batch_size"], num_workers=cfg["num_workers"], shuffle=cfg["valid_params"]["shuffle"])
@@ -66,9 +63,10 @@ if __name__ == "__main__":
         train_losses = list()
         valid_losses = list()
 
-        model = UnetSegmentationResnet152(output_channels=1)
+        model = UnetResnet152v2(output_channels=1)
         wandb.watch(model, log="all")
-        criterion = nn.BCEWithLogitsLoss()
+        valid_criterion = nn.BCEWithLogitsLoss()
+        train_criterion = BinaryDiceLoss()
         optimizer = optim.Adam(model.parameters())
     
         # Load checkpoints 
@@ -107,7 +105,7 @@ if __name__ == "__main__":
                 
                     preds = model(inputs)
                     
-                    loss = criterion(preds, targets)
+                    loss = train_criterion(preds, targets)
                 
                     train_loss += loss.item() 
                     time_2 = time()
@@ -135,7 +133,7 @@ if __name__ == "__main__":
                 
                     preds = model(inputs)
 
-                    loss = criterion(preds, targets)
+                    loss = valid_criterion(preds, targets)
                 
                     valid_loss += loss.item()
 
