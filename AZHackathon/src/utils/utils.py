@@ -18,7 +18,7 @@ def get_image_metadata(path_to_file):
     action_list_number = string_arr[-1][12:15]
     z_number_3d = string_arr[-1][15:18]
     imaging_channel = string_arr[-1][18:21]
-    is_mask = "mask" in path_to_file
+    is_mask = "/masks/" in path_to_file
     return {
         "row_col":       row_col,
         "field of view": fied_of_view,
