@@ -1,6 +1,6 @@
 import os
 
-def get_image_metadata(path_to_file):
+def get_image_metadata(path_to_file: str):
     """Function for extracting metadata from filename of dataset provided by AstraZeneca.
     
     B02   - well (row B, column 02) 
