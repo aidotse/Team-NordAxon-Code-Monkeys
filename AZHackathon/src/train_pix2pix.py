@@ -81,24 +81,10 @@ if __name__ == "__main__":
         print("Loading datasets")
         
         # data_loader
-        if opt.magnification is None:
-            train_set = ExampleDataset("../data/03_training_data/normalized_bias/train", transform=affine_augmentations())
-            test_set = ExampleDataset("../data/03_training_data/normalized_bias_w_gen_masks/valid", transform=test_augmentations(crop_size=(256,256)))
-            
-        else:
-            magnifications = {
-                "20": "20x_images",
-                "40": "40x_images",
-                "60": "60x_images"
-            }
-            if magnifications.get(opt.magnification) is None:
-                print("Enter '--magnification' as either 20, 40 or 60")
-            
-            magnification = magnifications[opt.magnification]
-            print(f"Training on magnification {magnification}")
-            train_set = SingleMagnificationDataset("../data/03_training_data/normalized_bias/train", magnification, transform=affine_augmentations())
-            test_set = SingleMagnificationDataset("../data/03_training_data/normalized_bias_w_gen_masks/valid", magnification, transform=test_augmentations(crop_size=(256,256)))
-
+     
+        train_set = ExampleDataset("../data/03_training_data/normalized_bias/train", transform=affine_augmentations())
+        test_set = ExampleDataset("../data/03_training_data/normalized_bias_w_gen_masks/valid", transform=test_augmentations(crop_size=(256,256)))
+        
         training_data_loader = DataLoader(train_set, batch_size=cfg["train_params"]["batch_size"], num_workers=cfg["num_workers"], shuffle=cfg["train_params"]["shuffle"])
         testing_data_loader = DataLoader(test_set, batch_size=cfg["valid_params"]["batch_size"], num_workers=cfg["num_workers"], shuffle=cfg["valid_params"]["shuffle"])
     
