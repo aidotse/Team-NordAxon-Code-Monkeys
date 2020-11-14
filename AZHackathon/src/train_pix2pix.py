@@ -32,6 +32,7 @@ torch.cuda.manual_seed_all(hash("so runs are repeatable") % 2**32 - 1)
 if __name__ == "__main__":
     # Training settings
     parser = argparse.ArgumentParser(description='pix2pix-pytorch-implementation')
+    parser.add_argument('--mask-input', action="store_true", help='use masks in inputs')
     parser.add_argument('--magnification', type=str, default=None, help='20, 40 or 60')
     parser.add_argument('--input_nc', type=int, default=7, help='input image channels')
     parser.add_argument('--output_nc', type=int, default=1, help='output image channels')
@@ -42,7 +43,6 @@ if __name__ == "__main__":
     parser.add_argument('--lr', type=float, default=0.0001, help='initial learning rate for adam')
     parser.add_argument('--lr_policy', type=str, default='lambda', help='learning rate policy: lambda|step|plateau|cosine')
     parser.add_argument('--lr_decay_iters', type=int, default=50, help='multiply by a gamma every lr_decay_iters iterations')
-    parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for adam. default=0.5')
     parser.add_argument('--lamb', type=int, default=2e-2, help='weight on L1 term in objective')
     opt = parser.parse_args()
 
@@ -101,7 +101,12 @@ if __name__ == "__main__":
         device = "cuda:0" if torch.cuda.is_available() else "cpu"
     
         print('===> Building models')
-        net_g = UnetResnet152v3(input_channels=7, output_channels=1).to(device)
+        #net_g = UnetResnet152v3(input_channels=7, output_channels=1).to(device)
+        if opt.mask_input:
+            net_g = UnetResnet152v2(input_channels=8, output_channels=1)
+        else:
+            net_g = UnetResnet152v2(input_channels=7, output_channels=1)
+        
         net_d = define_D(opt.input_nc + opt.output_nc, opt.ndf, 'basic', gpu_id=device)
         wandb.watch(net_g, log="all")
     
@@ -113,12 +118,12 @@ if __name__ == "__main__":
         optimizer_g = optim.Adam(
                 net_g.parameters(), 
                 lr=cfg["train_params"]["g_lr"], 
-                betas=(opt.beta1, 0.999)
+                betas=(0.5, 0.999)
                 )
         optimizer_d = optim.Adam(
                 net_d.parameters(), 
                 lr=cfg["train_params"]["d_lr"], 
-                betas=(opt.beta1, 0.999)
+                betas=(0.5, 0.999)
                 )
         net_g_scheduler = get_scheduler(optimizer_g, opt)
         net_d_scheduler = get_scheduler(optimizer_d, opt)
@@ -156,6 +161,12 @@ if __name__ == "__main__":
             for iteration, (inputs, targets, masks) in t_iter:
         
                 # forward
+                if opt.mask_input:
+                    inputs = torch.cat([
+                        inputs, 
+                        masks[:,target_idx].unsqueeze(1)
+                    ], dim=1)
+                
                 real_a, real_b = inputs.float().to(device), targets[:,2].unsqueeze(1).float().to(device)
                 fake_b = net_g(real_a)
     
@@ -217,6 +228,11 @@ if __name__ == "__main__":
                 t_iter = tqdm(enumerate(testing_data_loader, 1))
                 for iteration, (inputs, targets, masks) in t_iter:
             
+                    if opt.mask_input:
+                        inputs = torch.cat([
+                            inputs, 
+                            masks[:,target_idx].unsqueeze(1)
+                        ], dim=1)
                     inputs, targets = inputs.float().to(device), targets[:,2].unsqueeze(1).float().to(device)
             
                     prediction = net_g(inputs)
