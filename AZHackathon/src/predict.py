@@ -15,11 +15,13 @@ from data.dataset import PredictionDataset
 
 
 
-def strided_predict(original_inputs, model, device, 
-                    crop_size:int=256, 
-                    stride:int=256, 
-                    output_channels:int=1, 
-                    batch_size:int=16
+def strided_predict(original_inputs:torch.Tensor, 
+                    model:torch.nn.Module, 
+                    device:torch.device, 
+                    crop_size:int = 256, 
+                    stride:int = 256, 
+                    output_channels:int = 1, 
+                    batch_size:int = 16
     ) -> torch.Tensor:
     assert crop_size >= stride # Crop size must be larger than stride
     
@@ -64,10 +66,10 @@ def strided_predict(original_inputs, model, device,
     output_image = output_image * (1 / output_counts)
     return output_image
 
-def test_time_augmentation_predict(inputs, model, device, 
-                                   crop_size=256, 
-                                   stride=256, 
-                                   batched=True
+def test_time_augmentation_predict(inputs:torch.Tensor, model:nn.Module, device:torch.device, 
+                                   crop_size:int = 256, 
+                                   stride:int = 256, 
+                                   batched:bool =True
     ):
     """
     # 0 - x
@@ -142,10 +144,10 @@ if __name__ == "__main__":
     
     # 4 Save images (and display plot + metrics)
     
-    input_dir = opt.input_dir #"../data/03_training_data/normalized_bias/train/input/20x_images"
-    output_dir = opt.output_dir #"../data/04_generated_images/20x_images"
-    weights_path = opt.weights_path #"../../data/05_saved_models/A2_g_best.pth"
-    target = opt.target # 
+    input_dir = opt.input_dir 
+    output_dir = opt.output_dir 
+    weights_path = opt.weights_path 
+    target = opt.target 
     target_idx = {'A1':0, 'A2':1, 'A3':2}[target]
     
     Path(output_dir).mkdir(exist_ok=True, parents=True)
@@ -177,14 +179,3 @@ if __name__ == "__main__":
             print(f"Successfully saved to {save_path}")
         else:
             print(f"Failed to save {save_path}")
-            
-            
-        #plt.imshow(output_image[0,0])
-        #target_path = os.path.join(target_dir, output_filenames[target_idx])
-        #target_img = cv2.imread(target_path, -1)
-        #plt.imshow(target_img)
-        
-        # MAE computation
-        #plt.imshow((torch.Tensor(target_img.astype(np.float))-output_image)[0,0])
-        #(torch.Tensor(target_img.astype(np.float))-output_image).abs().mean()
-

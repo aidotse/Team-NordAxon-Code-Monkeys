@@ -11,7 +11,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 import torch.backends.cudnn as cudnn
 
-from data.dataset import ExampleDataset, SingleMagnificationDataset
+from data.dataset import AstraZenecaTrainingDataset, SingleMagnificationDataset
 from data.augmentations import affine_augmentations, test_augmentations
 import models.network as network, utils.gan_util as util
 from models.unets import UnetResnet152v2, UnetResnet152v3
@@ -82,8 +82,8 @@ if __name__ == "__main__":
         
         # data_loader
      
-        train_set = ExampleDataset("../data/03_training_data/normalized_bias/train", transform=affine_augmentations())
-        test_set = ExampleDataset("../data/03_training_data/normalized_bias_w_gen_masks/valid", transform=test_augmentations(crop_size=(256,256)))
+        train_set = AstraZenecaTrainingDataset("../data/03_training_data/normalized_bias/train", transform=affine_augmentations())
+        test_set = AstraZenecaTrainingDataset("../data/03_training_data/normalized_bias_w_gen_masks/valid", transform=test_augmentations(crop_size=(256,256)))
         
         training_data_loader = DataLoader(train_set, batch_size=cfg["train_params"]["batch_size"], num_workers=cfg["num_workers"], shuffle=cfg["train_params"]["shuffle"])
         testing_data_loader = DataLoader(test_set, batch_size=cfg["valid_params"]["batch_size"], num_workers=cfg["num_workers"], shuffle=cfg["valid_params"]["shuffle"])
