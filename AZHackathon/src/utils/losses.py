@@ -10,7 +10,7 @@ def reverse_huber_loss(pred, true):
     true = true.contiguous().view(batch_size, -1)
     loss = (pred - true).abs()
     loss[loss > 1] = loss[loss > 1]**2 
-    return loss.sum()
+    return loss.mean()
 
 # From https://github.com/hubutui/DiceLoss-PyTorch/blob/master/loss.py
 class BinaryDiceLoss(nn.Module):
