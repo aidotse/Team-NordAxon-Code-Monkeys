@@ -10,7 +10,7 @@ import torch.nn.functional as F
 import torchvision.transforms.functional as F2
 
 from utils.utils import get_image_metadata
-from models.unets import UnetResnet152
+from models.unets import UnetResnet152, UnetSegmentationResnet152
 from data.dataset import PredictionDataset
 
 
@@ -152,7 +152,7 @@ if __name__ == "__main__":
     dataset = PredictionDataset(input_dir)
 
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
-    if opt.masks:
+    if opt.mask:
         model = UnetSegmentationResnet152(output_channels=1)
     else:
         model = UnetResnet152v2(output_channels=1)

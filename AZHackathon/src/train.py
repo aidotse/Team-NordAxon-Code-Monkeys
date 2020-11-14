@@ -30,7 +30,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--target', type=str, required=True, default='A2',  help="Either 'A1', 'A2' or 'A3'")
     parser.add_argument('--experimental-augmentations', type=bool, default=False,  help="Use affine- (safe) or experimental (risky) augmentations")
-    parser.add_argument('--mask-input', type=bool, default=False,  help="Train with masks as additional input")
+    parser.add_argument('--mask-input', action="store_true", help="Train with masks as additional input")
     opt = parser.parse_args()
     print(opt)
     
