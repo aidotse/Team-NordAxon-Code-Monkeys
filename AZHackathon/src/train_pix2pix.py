@@ -35,7 +35,7 @@ if __name__ == "__main__":
     parser.add_argument('--mask-input', action="store_true", help='use masks in inputs')
     parser.add_argument('--target', type=str, required=True, default='A2',  help="Either 'A1', 'A2' or 'A3'")
     parser.add_argument('--magnification', type=str, default=None, help='20, 40 or 60')
-    parser.add_argument('--input_nc', type=int, default=7, help='input image channels')
+    parser.add_argument('--input_nc', type=int, default=8, help='input image channels')
     parser.add_argument('--output_nc', type=int, default=1, help='output image channels')
     parser.add_argument('--ndf', type=int, default=64, help='discriminator filters in first conv layer')
     parser.add_argument('--epoch_count', type=int, default=1, help='the starting epoch count')
@@ -44,7 +44,7 @@ if __name__ == "__main__":
     parser.add_argument('--lr', type=float, default=0.0001, help='initial learning rate for adam')
     parser.add_argument('--lr_policy', type=str, default='lambda', help='learning rate policy: lambda|step|plateau|cosine')
     parser.add_argument('--lr_decay_iters', type=int, default=50, help='multiply by a gamma every lr_decay_iters iterations')
-    parser.add_argument('--lamb', type=int, default=2e-2, help='weight on L1 term in objective')
+    parser.add_argument('--lamb', type=int, default=5e-3, help='weight on L1 term in objective')
     opt = parser.parse_args()
 
     print(opt)
@@ -83,7 +83,8 @@ if __name__ == "__main__":
         # data_loader
         if opt.magnification is None:
             train_set = ExampleDataset("../data/03_training_data/normalized_bias/train", transform=affine_augmentations())
-            test_set = ExampleDataset("../data/03_training_data/normalized_bias/valid", transform=test_augmentations(crop_size=(256,256)))
+            test_set = ExampleDataset("../data/03_training_data/normalized_bias_w_gen_masks/valid", transform=test_augmentations(crop_size=(256,256)))
+            
         else:
             magnifications = {
                 "20": "20x_images",
@@ -96,7 +97,7 @@ if __name__ == "__main__":
             magnification = magnifications[opt.magnification]
             print(f"Training on magnification {magnification}")
             train_set = SingleMagnificationDataset("../data/03_training_data/normalized_bias/train", magnification, transform=affine_augmentations())
-            test_set = SingleMagnificationDataset("../data/03_training_data/normalized_bias/valid", magnification, transform=test_augmentations(crop_size=(256,256)))
+            test_set = SingleMagnificationDataset("../data/03_training_data/normalized_bias_w_gen_masks/valid", magnification, transform=test_augmentations(crop_size=(256,256)))
 
         training_data_loader = DataLoader(train_set, batch_size=cfg["train_params"]["batch_size"], num_workers=cfg["num_workers"], shuffle=cfg["train_params"]["shuffle"])
         testing_data_loader = DataLoader(test_set, batch_size=cfg["valid_params"]["batch_size"], num_workers=cfg["num_workers"], shuffle=cfg["valid_params"]["shuffle"])
@@ -170,7 +171,7 @@ if __name__ == "__main__":
                         inputs, 
                         masks[:,target_idx].unsqueeze(1)
                     ], dim=1)
-                
+                 
                 real_a, real_b = inputs.float().to(device), targets[:,target_idx].unsqueeze(1).float().to(device)
                 fake_b = net_g(real_a)
     
