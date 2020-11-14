@@ -140,7 +140,7 @@ if __name__ == "__main__":
     opt = parser.parse_args()
 
     # 1 Load model and weights
-    # 2 Create prediction datase
+    # 2 Create prediction dataset
     
     # 4 Save images (and display plot + metrics)
     
