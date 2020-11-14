@@ -39,7 +39,7 @@ class ExampleDataset(Dataset):
         # Group all 7 inputs with all 3 respective targets into variable sample
         samples = dict()
         for sample_dict in dataset_dicts:
-            sample_key = (sample_dict["row_col"], sample_dict["field of view"])
+            sample_key = (sample_dict["row_col"], sample_dict["field of view"], sample_dict["magnification"])
 
             if samples.get(sample_key) is None:
                 samples[sample_key] = {
@@ -87,13 +87,11 @@ class ExampleDataset(Dataset):
         for i, z_number_3d in enumerate(["Z01", "Z02", "Z03", "Z04", "Z05", "Z06", "Z07"]):
             img_path = sample_dict["input"][z_number_3d]
             img = cv2.imread(img_path, -1)
-            #img = img.astype(np.int16)
             input[i] = img
 
         for i, action_list_number in enumerate(["A01", "A02", "A03"]):
             img_path = sample_dict["target"][action_list_number]
             img = cv2.imread(img_path, -1)
-            #img = img.astype(np.int16)
             output[i] = img
         
         # add real nuclei mask -- saved as pickle because of problems... ---- /Isabella

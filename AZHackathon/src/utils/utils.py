@@ -19,6 +19,7 @@ def get_image_metadata(path_to_file):
     z_number_3d = string_arr[-1][15:18]
     imaging_channel = string_arr[-1][18:21]
     is_mask = "/masks/" in path_to_file
+    magnification = os.path.basename(os.path.dirname(path_to_file))
     return {
         "row_col":       row_col,
         "field of view": fied_of_view,
@@ -26,5 +27,6 @@ def get_image_metadata(path_to_file):
         "z_number_3d": z_number_3d,
         "imaging_channel": imaging_channel,
         "path": path_to_file,
-        "is_mask": is_mask
+        "is_mask": is_mask,
+        "magnification": magnification
     }
