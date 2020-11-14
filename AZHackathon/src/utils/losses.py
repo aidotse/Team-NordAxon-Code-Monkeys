@@ -3,6 +3,15 @@ import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
 
+def reverse_huber_loss(pred, true):
+    batch_size = pred.shape[0]
+
+    pred = pred.contiguous().view(batch_size, -1)
+    true = true.contiguous().view(batch_size, -1)
+    loss = (pred - true).abs()
+    loss[loss > 1] = loss[loss > 1]**2 
+    return loss.sum()
+
 # From https://github.com/hubutui/DiceLoss-PyTorch/blob/master/loss.py
 class BinaryDiceLoss(nn.Module):
     """Dice loss of binary class
