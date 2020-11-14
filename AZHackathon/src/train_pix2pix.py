@@ -110,6 +110,7 @@ if __name__ == "__main__":
         else:
             net_g = UnetResnet152v2(input_channels=7, output_channels=1)
         
+        net_g.to(device)
         net_d = define_D(opt.input_nc + opt.output_nc, opt.ndf, 'basic', gpu_id=device)
         wandb.watch(net_g, log="all")
     
