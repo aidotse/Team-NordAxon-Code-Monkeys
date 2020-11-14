@@ -4,6 +4,8 @@ from typing import Tuple
 import albumentations as A
 import numpy as np
 
+# The cell below shows a wrapper function for most of the augmentations, 
+# to simplify the code
 
 def stack(augmentation):
     def wrapper(self, input: list, target: list, mask: list) -> tuple:
@@ -19,8 +21,13 @@ def stack(augmentation):
     return wrapper
 
 # ----------------- Affine transforms ----------------------------------
-class VerticalFlip:
+#
 
+class VerticalFlip:
+    """
+    Will flip the inputs vertically with
+    a probability P=0.5
+    """
     def __init__(self, p = 0.5):
         self.transform = A.VerticalFlip(p=p)
 
@@ -29,7 +36,10 @@ class VerticalFlip:
         return self.transform(image = inputs, mask = mask)
 
 class HorizontalFlip:
-
+    """
+    Will flip the inputs horizontally with
+    a probability P=0.5
+    """
     def __init__(self, p = 0.5):
         self.transform = A.HorizontalFlip(p=p)
 
@@ -38,7 +48,10 @@ class HorizontalFlip:
         return self.transform(image = inputs, mask = mask)
 
 class Rotate:
-
+    """
+    Will rotate the inputs between angles +-limit with
+    a probability P=0.5
+    """
     def __init__(self, p = 0.5, limit = 9):
         self.transform = A.Rotate(limit = limit, p=p)
 
@@ -47,7 +60,10 @@ class Rotate:
         return self.transform(image = inputs, mask = mask)
 
 class Transpose:
-
+    """
+    Will transpose the inputs with
+    a probability P=0.5
+    """
     def __init__(self, p = 0.5):
         self.transform = A.Transpose(p=p)
 
@@ -65,10 +81,14 @@ class Scale:
     def __call__(self, inputs: list, mask: list) -> dict:
         return self.transform(image = inputs, mask = mask)
 
+
 # ------------------ Heavy geometric transforms ------------------------
 
 class ElasticTransform:
-
+    """
+    Will distort the inputs elastically with
+    a probability P=0.5
+    """
     def __init__(self, p = 0.5):
         self.transform = A.ElasticTransform(p=p)
 
@@ -77,7 +97,10 @@ class ElasticTransform:
         return self.transform(image = inputs, mask = mask)
 
 class GridDistortion:
-
+    """
+    Will distort the inputs using grid distortion with
+    a probability P=0.5
+    """
     def __init__(self, p = 0.5):
         self.transform = A.GridDistortion(p=p)
 
@@ -86,7 +109,10 @@ class GridDistortion:
         return self.transform(image = inputs, mask = mask)
 
 class PincushionDistortion:
-
+    """
+    Will distort the inputs pincushion style with
+    a probability P=0.5
+    """
     def __init__(self, p = 0.5, distort_limit=0.1):
         self.transform = A.OpticalDistortion(p=p, distort_limit=distort_limit)
 
@@ -95,8 +121,12 @@ class PincushionDistortion:
         return self.transform(image = inputs, mask = mask)
 
 # ----------------Color augmentations--------------------------------
-class RandomBrightnessContrast:
 
+class RandomBrightnessContrast:
+    """
+    Will adjust the inputs brightness and contrast with
+    a probability P=0.5
+    """
     def __init__(self, p = 0.5, brightness_limit = 0.01):
         self.transform = A.RandomBrightnessContrast(brightness_limit=brightness_limit, p=p)
 
@@ -104,16 +134,16 @@ class RandomBrightnessContrast:
     def __call__(self, inputs: list, mask: list) -> dict:
         return self.transform(image = inputs, mask = mask)
 
-class HueSaturation:
-    pass
-    # Not implemented yet due to channel errors in Albumentations
-
 class ChannelShuffle:
-
+    """
+    Will shuffle the input channels with
+    a probability P=0.5
+    This method assumes channel-first tensors
+    """
     def __init__(self, p = 0.5):
         self.p = p
 
-    # Method assumes channel-first tensors
+
     def __call__(self, input: list, target: list, mask: list) -> tuple:
         if random.random() < self.p:
             indices = [i for i in range(input.shape[0])]
@@ -122,8 +152,13 @@ class ChannelShuffle:
         return input, target, mask
 
 # ------------Noise injection augmentations-----------------
-class GaussianBlur:
 
+
+class GaussianBlur:
+    """
+    Will inject Gaussian blur into the inputs with
+    a probability P=0.5
+    """
     def __init__(self, p = 0.5, blur_limit=(3, 7)):
         self.transform = A.GaussianBlur(p=p, blur_limit=blur_limit)
 
@@ -132,7 +167,10 @@ class GaussianBlur:
         return self.transform(image = inputs, mask = mask)
 
 class MedianBlur:
-
+    """
+    Will inject Median blur into the inputs with
+    a probability P=0.5
+    """
     def __init__(self, p = 0.5, blur_limit=5):
         self.transform = A.MedianBlur(p=p, blur_limit=blur_limit)
 
@@ -143,8 +181,17 @@ class MedianBlur:
 # ---------------------- Other --------------------------------------
 
 class ChannelChange:
-
-    def __init__(self, changes):
+    """
+    A class to be able to change tensor from channels_last to
+    channels_first and vice versa
+    """
+    def __init__(self, changes : tuple):
+        """
+        changes is a tuple of in which order 
+        the channels should be changed
+        ex: from channels_first to channels_last: (1,2,0)
+        ex: from channels_last to channels_first: (2,0,1)
+        """
         self.changes = changes
     
     def __call__(self, input: list, target: list,  mask: list) -> tuple:
@@ -152,9 +199,12 @@ class ChannelChange:
         target = np.transpose(target, self.changes)
         mask = np.transpose(mask, self.changes)
         return input, target, mask
-    
-class RandomResizeCrop:
 
+class RandomResizeCrop:
+    """
+    A class that crops random parts of the
+    inputs to the size crop_size
+    """
     def __init__(self, crop_size=(256,256), p=1):
         self.transform = A.RandomResizedCrop(crop_size[1], crop_size[0], scale=(0.08,1.0), ratio=(0.75,1.3333333333333333))
 
@@ -165,10 +215,18 @@ class RandomResizeCrop:
 # -------------------- Transform compose methods -------------------------
 
 def affine_augmentations():
-    """Custom PyTorch augmentations implemented using Albumentation and decorators
-    used for training. 
     """
-
+    The augmentations that we have deemed as
+    less risky
+    These are custom PyTorch augmentations implemented
+    using Albumentations and decorators used for training
+    """
+    vflip = VerticalFlip()
+    hflip = HorizontalFlip()
+    rotate = Rotate()
+    channels_last = ChannelChange((1,2,0))
+    channels_first = ChannelChange((2,0,1))
+    transpose = Transpose()
     transforms = A.Compose([
         ChannelChange((1,2,0)),
         RandomResizeCrop(),
@@ -181,9 +239,24 @@ def affine_augmentations():
     return transforms
 
 def all_augmentations():
-    """Experimental custom PyTorch augmentations implemented using Albumentation and decorators
-    used for training. 
     """
+    All augmentations:
+    These are experimental custom PyTorch
+    augmentations implemented using Albumentations
+    """
+    vflip = VerticalFlip()
+    hflip = HorizontalFlip() 
+    rotate = Rotate()
+    channels_last = ChannelChange((1,2,0))
+    channels_first = ChannelChange((2,0,1))
+    transpose = Transpose() 
+    elastic = ElasticTransform()
+    grid_distortion = GridDistortion()
+    brightness_contrast = RandomBrightnessContrast()
+    channel_shuffle = ChannelShuffle()
+    gaussian_blur = GaussianBlur()
+    median_blur = MedianBlur()
+    pincushion = PincushionDistortion()
     transforms = A.Compose([
         RandomResizeCrop(),
         ChannelShuffle(),
