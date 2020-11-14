@@ -49,7 +49,7 @@ def divide_input_target(
             z_number_3d = sample_dict["z_number_3d"]
             samples[sample_key]["input"][z_number_3d] = sample_dict["path"]
         else:
-            # Is an target
+            # Is a target
             action_list_number = sample_dict["action_list_number"]
             samples[sample_key]["target"][action_list_number] = sample_dict["path"]
     samples = list(samples.values())
@@ -218,7 +218,7 @@ def split_train_validation(
         filename = os.path.basename(img_path)
         save_path = os.path.join(output_path, _set, "masks", magnification, filename)
         cv2.imwrite(save_path, img)
-    
+
 
 if __name__ == "__main__":
     input_path = "../data/01_raw/"
@@ -226,7 +226,7 @@ if __name__ == "__main__":
     divide_input_target(input_path, output_path)
     
     input_path = "../data/02_intermediate/"
-    output_path = "../data/02_intermediate/" 
+    output_path = "../data/02_intermediate/"
     create_masks(input_path, output_path)
     
     input_path = "../data/02_intermediate/"
