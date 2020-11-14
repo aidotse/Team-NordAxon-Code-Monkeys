@@ -166,10 +166,11 @@ if __name__ == "__main__":
         x = torch.Tensor(inputs).unsqueeze(0)
         output_image = test_time_augmentation_predict(x, model, device, crop_size=1024, stride=256)
         
-        if opt.mask:
+        if not opt.mask:
             generated_image = output_image[0,0].numpy().astype(np.uint16)
         else:
-            generated_image = output_image[0,0].numpy().astype(np.uint8)
+            generated_image = (output_image[0,0]>0.5).numpy().astype(np.uint8)
+            
         save_path = os.path.join(output_dir, output_filenames[target_idx])
         success = cv2.imwrite(save_path, generated_image)
         if success:
