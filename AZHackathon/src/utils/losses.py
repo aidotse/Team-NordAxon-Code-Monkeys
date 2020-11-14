@@ -80,10 +80,7 @@ def compute_power_curve(x: np.array, epsilon: float) -> np.array:
         gen_imgs = x.permute(0,2,3,1)
         img_numpy = gen_imgs[i,:,:,:].cpu().detach().numpy()
 
-        if img_numpy.shape[-1] == 3:
-            img_gray = RGB2gray(img_numpy)
-        else: 
-            img_gray = img_numpy.mean(axis=-1)
+        img_gray = img_numpy.mean(axis=-1)
 
         fft = np.fft.fft2(img_gray)
         fshift = np.fft.fftshift(fft)
@@ -135,12 +132,6 @@ def azimuthalAverage(image, center=None):
     radial_prof = tbin / nr
 
     return radial_prof
-
-
-def RGB2gray(rgb):
-    r, g, b = rgb[:,:,0], rgb[:,:,1], rgb[:,:,2]
-    gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
-    return gray
 
 if __name__ == "__main__":
     freq_criterion = SpectralLoss("cpu", epsilon=1e-3)
