@@ -1,3 +1,4 @@
+# Implementation is modified version of this repo https://github.com/mrzhu-cool/pix2pix-pytorch
 from __future__ import print_function
 import argparse
 import os
