@@ -160,8 +160,10 @@ if __name__ == "__main__":
     target_idx = {'A01':0, 'A02':1, 'A03':2}[target]
     
     Path(output_dir).mkdir(exist_ok=True, parents=True)
-    dataset = PredictionDataset(input_dir, use_masks=True)
-
+    if opt.mask_dir is not None:
+        dataset = PredictionDataset(input_dir, use_masks=opt.mask_dir)
+    else:
+        dataset = PredictionDataset(input_dir)
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     if opt.mask_dir is not None:
         model = UnetResnet152v2(input_channels=8, output_channels=1)
