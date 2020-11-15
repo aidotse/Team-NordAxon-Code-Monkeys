@@ -319,4 +319,4 @@ class PredictionDataset(Dataset):
             m = cv2.imread(mask_path, -1)
             mask[0] = m
             
-            return torch.cat([input, torch.Tensor(mask)], dim=0), input_filenames, output_filenames
+            return torch.cat([torch.Tensor(input), torch.Tensor(mask)], dim=0), input_filenames, output_filenames
