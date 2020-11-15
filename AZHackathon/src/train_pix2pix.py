@@ -13,14 +13,12 @@ import torch.backends.cudnn as cudnn
 
 from data.dataset import AstraZenecaTrainingDataset, SingleMagnificationDataset
 from data.augmentations import affine_augmentations, test_augmentations
-import models.network as network, utils.gan_util as util
+import models.networks import define_G, define_D, GANLoss, get_scheduler, update_learning_rate
 from models.unets import UnetResnet152v2, UnetResnet152v3
 from utils.losses import SpectralLoss, reverse_huber_loss
 # Init wandb
 import wandb
 
-
-from gan.networks import define_G, define_D, GANLoss, get_scheduler, update_learning_rate
 
 # Ensure deterministic behavior
 torch.backends.cudnn.deterministic = True
@@ -62,11 +60,11 @@ if __name__ == "__main__":
         "epochs": 800,
         "num_workers": 32,
         "save_checkpoints": True,
-        "load_checkpoint": False,
+        "load_checkpoint": True,
 
         "train_params": {
-            "d_lr": 1e-6,
-            "g_lr": 1e-4,
+            "d_lr": 1e-5,
+            "g_lr": 1e-3,
             "batch_size": 16,
             "shuffle": True,
         },
@@ -84,8 +82,8 @@ if __name__ == "__main__":
         
         # data_loader
      
-        train_set = AstraZenecaTrainingDataset("../data/03_training_data/normalized_bias/train", transform=affine_augmentations())
-        test_set = AstraZenecaTrainingDataset("../data/03_training_data/normalized_bias_w_gen_masks/valid", transform=test_augmentations(crop_size=(256,256)))
+        train_set = AstraZenecaTrainingDataset("../data/03_training_data/normalized_bias/train", transform=affine_augmentations(crop_size=(512,512)))
+        test_set = AstraZenecaTrainingDataset("../data/03_training_data/normalized_bias/valid", transform=test_augmentations(crop_size=(512,512)))
         
         training_data_loader = DataLoader(train_set, batch_size=cfg["train_params"]["batch_size"], num_workers=cfg["num_workers"], shuffle=cfg["train_params"]["shuffle"])
         testing_data_loader = DataLoader(test_set, batch_size=cfg["valid_params"]["batch_size"], num_workers=cfg["num_workers"], shuffle=cfg["valid_params"]["shuffle"])
@@ -214,9 +212,9 @@ if __name__ == "__main__":
             update_learning_rate(net_d_scheduler, optimizer_d)
             
             if loss_g_gan > loss_g_l1 * opt.lamb - 1:
-                factor *= 1 + 0.5
+                factor *= 1 + 0.01
             elif loss_g_gan < loss_g_l1 * opt.lamb + 1:
-                factor *= 1 - 0.5
+                factor *= 1 - 0.01
             # test
             net_g.eval()
             with torch.no_grad():

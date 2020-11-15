@@ -138,7 +138,7 @@ if __name__ == "__main__":
     parser.add_argument('--weights_path', type=str, default="../../data/05_saved_models/normalized_bias/A1_segmentation_model_2.pth", help='output image channels')
     parser.add_argument('--stride', type=int, default=512, help="(Must be less than 'crop-size') Must be 2^n, e.g. 256, 512, 1024")
     parser.add_argument('--crop-size', type=int, default=1024, help="Must be 2^n, e.g. 256, 512, 1024")
-
+    parser.add_argument('v2', action="store_true", default=True, help="Use UnetResnet152v2")
     opt = parser.parse_args()
     print(opt)
 
@@ -152,10 +152,10 @@ if __name__ == "__main__":
     weights_path = opt.weights_path 
     
     Path(output_dir).mkdir(exist_ok=True, parents=True)
-    dataset = PredictionDataset(input_dir, use_masks=True)
+    dataset = PredictionDataset(input_dir)
 
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
-    if opt.mask:
+    if opt.v2:
         model = UnetSegmentationResnet152(input_channels=7, output_channels=1)
     else:
         model = UnetResnet152(input_channels=7, output_channels=1)
