@@ -223,7 +223,7 @@ class UnetResnext101_32x8d(nn.Module):
 
     def forward(self, x):
         return self.unet(x)  
-      
+
 class UnetSegmentationResnet152(nn.Module):
     def __init__(self, input_channels:int = 7, output_channels:int = 3):
         super(UnetSegmentationResnet152, self).__init__()
@@ -239,7 +239,7 @@ class UnetSegmentationResnet152(nn.Module):
 
     def forward(self, x):
         return self.unet(x)    
-    
+
 if __name__ == "__main__":
     # Testing the models for correcteness
     

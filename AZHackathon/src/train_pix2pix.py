@@ -15,7 +15,7 @@ from data.dataset import AstraZenecaTrainingDataset, SingleMagnificationDataset
 from data.augmentations import affine_augmentations, test_augmentations
 import models.network as network, utils.gan_util as util
 from models.unets import UnetResnet152v2, UnetResnet152v3
-from utils.losses import SpectralLoss
+from utils.losses import SpectralLoss, reverse_huber_loss
 # Init wandb
 import wandb
 
@@ -32,10 +32,11 @@ torch.cuda.manual_seed_all(hash("so runs are repeatable") % 2**32 - 1)
 if __name__ == "__main__":
     # Training settings
     parser = argparse.ArgumentParser(description='pix2pix-pytorch-implementation')
-    parser.add_argument('--mask-input', action="store_true", help='use masks in inputs')
+    parser.add_argument('--mask-input', default=False, action="store_true", help='use masks in inputs')
     parser.add_argument('--target', type=str, required=True, default='A2',  help="Either 'A1', 'A2' or 'A3'")
     parser.add_argument('--magnification', type=str, default=None, help='20, 40 or 60')
-    parser.add_argument('--input_nc', type=int, default=8, help='input image channels')
+    parser.add_argument('--load_checkpoint', type=bool, default=False, help='Load checkpoint weights.')
+    parser.add_argument('--input_nc', type=int, default=7, help='input image channels')
     parser.add_argument('--output_nc', type=int, default=1, help='output image channels')
     parser.add_argument('--ndf', type=int, default=64, help='discriminator filters in first conv layer')
     parser.add_argument('--epoch_count', type=int, default=1, help='the starting epoch count')
@@ -56,11 +57,12 @@ if __name__ == "__main__":
           "class": "UnetResnet152v2",
         },
         "save_path": "weights",
-        "pretrained_generator":  "../data/05_saved_models/normalized_bias/A3_g_best.pth",
+        "pretrained_generator":  "weights/last_g.pth",
+        "pretrained_discriminator": "../data/last_d.pth",
         "epochs": 800,
         "num_workers": 32,
         "save_checkpoints": True,
-        "load_checkpoint": False,#True,#False,
+        "load_checkpoint": False,
 
         "train_params": {
             "d_lr": 1e-6,
@@ -103,6 +105,7 @@ if __name__ == "__main__":
     
         criterionGAN = GANLoss(target_real_label=0.9, target_fake_label=0.1).to(device)
         criterionL1 = nn.L1Loss().to(device)
+        criterion_rhl = reverse_huber_loss
         criterionFreq = SpectralLoss(device)
 
         # setup optimizer
@@ -119,10 +122,6 @@ if __name__ == "__main__":
         net_g_scheduler = get_scheduler(optimizer_g, opt)
         net_d_scheduler = get_scheduler(optimizer_d, opt)
         
-        # Experiment, load pre-trained Generator
-        """state_dict = torch.load(cfg["pretrained_generator"], map_location=device)["model_state_dict"]
-        net_g.load_state_dict(state_dict)
-        """
         # Load checkpoints 
         if cfg["load_checkpoint"]:
             g_weight_file = os.path.join(cfg["save_path"], 'g_last.pth')
@@ -139,7 +138,7 @@ if __name__ == "__main__":
             best_valid_loss = 1e100
         
         print(f"Starting from epoch {epoch}")
-    
+        factor = 1 
         for epoch in range(opt.epoch_count, opt.niter + opt.niter_decay + 1):
             net_g.train()
 
@@ -197,10 +196,11 @@ if __name__ == "__main__":
                 loss_g_gan = criterionGAN(pred_fake, True)
         
                 # Second, G(A) = B
-                loss_g_l1 = criterionL1(fake_b, real_b)
+                #loss_g_l1 = criterionL1(fake_b, real_b)
+                loss_g_l1 = criterion_rhl(fake_b, real_b)
                 loss_g_spectral = criterionFreq(fake_b, real_b)
 
-                loss_g = loss_g_gan + loss_g_l1 * opt.lamb + loss_g_spectral
+                loss_g = loss_g_gan + loss_g_l1 * opt.lamb * factor + loss_g_spectral
                 
                 loss_g.backward()
         
@@ -212,7 +212,11 @@ if __name__ == "__main__":
                 g_losses.append(loss_g.item())
             update_learning_rate(net_g_scheduler, optimizer_g)
             update_learning_rate(net_d_scheduler, optimizer_d)
-        
+            
+            if loss_g_gan > loss_g_l1 * opt.lamb - 1:
+                factor *= 1 + 0.5
+            elif loss_g_gan < loss_g_l1 * opt.lamb + 1:
+                factor *= 1 - 0.5
             # test
             net_g.eval()
             with torch.no_grad():
