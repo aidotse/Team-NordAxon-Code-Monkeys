@@ -10,17 +10,19 @@ For a training pipeline, we would suggest that you follow the following steps:
 - 2.  Follow this with training your first model!  You will start with training the segmentationmodel for the nuclei masks by running thetrain_segmentation.pyscript. Masks werecreated with the maskSLIC algorithm in the previous step, and now you can use these forthe training.  If you did not change the paths in the previous script (except for the oneto your raw data), you should not have to change anything in this script. Otherwise, youmay have to change the paths.
 - 3.  Now you have the GAN models left!  Here you have a multitude of parameters that youcan tune directly from the command line.  You run the scripttrain_pix2pix.pywitharguments that fit your data. Please note that theA1model will need 8 channels as input,whereas the other two targets only need 7. This is because of the masks from step 2.
 
+To run the inference time for a model, simply add --verbose to the predict.py script!
+
 Overall project Organization
 ------------
 
     ├── LICENSE
-    ├── Makefile           <- Makefile with commands like `make data` or `make train`
     ├── README.md          <- The top-level README for developers using this project.
     ├── data
     │   ├── external       <- Data from third party sources.
     │   ├── interim        <- Intermediate data that has been transformed.
     │   ├── processed      <- The final, canonical data sets for modeling.
-    │   └── raw            <- The original, immutable data dump.
+    │   ├── raw            <- The original, immutable data dump.
+    |   └── models         <- Saved models
     │
     ├── models             <- Trained and serialized models, model predictions, or model summaries
     │
@@ -28,24 +30,18 @@ Overall project Organization
     │                         the creator's initials, and a short `-` delimited description, e.g.
     │                         `1.0-jqp-initial-data-exploration`.
     │
-    ├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
+    ├── reports            <- Report hand-in for the competition
     │
     ├── src                <- Source code for use in this project.
     │   ├── __init__.py    <- Makes src a Python module
     │   │
-    │   ├── data           <- Scripts to download or generate data
+    │   ├── data           <- Scripts to modify data
     │   │   └── make_dataset.py
     │   │
-    │   ├── features       <- Scripts to turn raw data into features for modeling
+    │   ├── features       <- Scripts to turn data into features for modeling
     │   │   └── build_features.py
     │   │
     │   ├── models         <- Scripts that define models
-    │   │
-    │   └── visualization  <- Scripts to create exploratory and results oriented visualizations
-    │       └── visualize.py
-    │
-    └── tox.ini            <- tox file with settings for running tox; see tox.readthedocs.io
-
 
 --------
 
