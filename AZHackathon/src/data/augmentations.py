@@ -221,12 +221,6 @@ def affine_augmentations():
     These are custom PyTorch augmentations implemented
     using Albumentations and decorators used for training
     """
-    vflip = VerticalFlip()
-    hflip = HorizontalFlip()
-    rotate = Rotate()
-    channels_last = ChannelChange((1,2,0))
-    channels_first = ChannelChange((2,0,1))
-    transpose = Transpose()
     transforms = A.Compose([
         ChannelChange((1,2,0)),
         RandomResizeCrop(),
@@ -244,19 +238,6 @@ def all_augmentations():
     These are experimental custom PyTorch
     augmentations implemented using Albumentations
     """
-    vflip = VerticalFlip()
-    hflip = HorizontalFlip() 
-    rotate = Rotate()
-    channels_last = ChannelChange((1,2,0))
-    channels_first = ChannelChange((2,0,1))
-    transpose = Transpose() 
-    elastic = ElasticTransform()
-    grid_distortion = GridDistortion()
-    brightness_contrast = RandomBrightnessContrast()
-    channel_shuffle = ChannelShuffle()
-    gaussian_blur = GaussianBlur()
-    median_blur = MedianBlur()
-    pincushion = PincushionDistortion()
     transforms = A.Compose([
         RandomResizeCrop(),
         ChannelShuffle(),
@@ -265,7 +246,7 @@ def all_augmentations():
         VerticalFlip(),
         HorizontalFlip(),
         Rotate(),
-        Transpose() ,
+        Transpose(),
         GaussianBlur(),
         ElasticTransform(),
         GridDistortion(),
