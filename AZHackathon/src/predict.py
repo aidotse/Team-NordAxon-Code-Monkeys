@@ -1,5 +1,6 @@
 import os, glob, argparse
 from pathlib import Path
+from time import time
 
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -138,6 +139,7 @@ if __name__ == "__main__":
     parser.add_argument('--weights_path', type=str, default="../../data/05_saved_models/A2_g_best.pth", help='output image channels')
     parser.add_argument('--target', type=str, default="A2", help="'A1', 'A2', 'A3' or 'all'")
     parser.add_argument('--mask', action='store_true')
+    parser.add_argument('--verbose', action="store_true", help="Measure inference time")
     parser.add_argument('--match-histogram', action="store_true", help="Match histograms with training data as post-processing.")
     parser.add_argument('--mag', type=str, default=None, help="Either 20x, 40x or 60x (Used when matching histograms).")
     parser.add_argument('--stride', type=int, default=512, help="(Must be less than 'crop-size') Must be 2^n, e.g. 256, 512, 1024")
@@ -158,29 +160,47 @@ if __name__ == "__main__":
     target_idx = {'A01':0, 'A02':1, 'A03':2}[target]
     
     Path(output_dir).mkdir(exist_ok=True, parents=True)
-    dataset = PredictionDataset(input_dir)
+    dataset = PredictionDataset(input_dir, use_masks=True)
 
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     if opt.mask:
-        model = UnetSegmentationResnet152(output_channels=1)
+        model = UnetResnet152v2(input_channels=8, output_channels=1)
     else:
-        model = UnetResnet152(output_channels=1)
+        model = UnetResnet152(input_channels=7, output_channels=1)
+        
 
     checkpoint = torch.load(weights_path, map_location=device)
     model.load_state_dict(checkpoint['model_state_dict'])
    
     dataset_length = len(dataset)
-    for i in tqdm(range(dataset_length)):
-        inputs, input_filenames, output_filenames = dataset[i]
-        x = torch.Tensor(inputs).unsqueeze(0)
-        output_image = test_time_augmentation_predict(x, model, device, crop_size=opt.crop_size, stride=opt.stride)
+    if opt.verbose:
+        inference_times = list()
+    
+    t_iter = tqdm(range(dataset_length))
+    for i in t_iter:
         
-        if not opt.mask:
+        inputs, input_filenames, output_filenames = dataset[i]
+            
+        x = torch.Tensor(inputs).unsqueeze(0)
+        if opt.verbose:
+            start_time = time()
+        output_image = test_time_augmentation_predict(x, model, device, 
+                                                      crop_size=opt.crop_size, 
+                                                      stride=opt.stride)
+        if opt.verbose:
+            end_time = time()
+            inference_time = end_time - start_time
+            inference_times.append(inference_time)
+            t_iter.set_description(f"inference time: {np.mean(inference_times)}, batch_size: {x.shape}, crop_size: {opt.crop_size}, stride: {opt.stride}")
+            
+        if opt.mask:
+            generated_image = output_image[0,0].numpy().astype(np.uint16)
+        else:
             generated_image = output_image[0,0].numpy().astype(np.uint16)
             if opt.match_histogram:
                 generated_image = matching_histograms(generated_image, opt.mag, target)  
-        else:
-            generated_image = (output_image[0,0]>0.5).numpy().astype(np.uint8)  
+           
+            #generated_image = (output_image[0,0]>0.5).numpy().astype(np.uint8)  
         
         save_path = os.path.join(output_dir, output_filenames[target_idx])
         success = cv2.imwrite(save_path, generated_image)
