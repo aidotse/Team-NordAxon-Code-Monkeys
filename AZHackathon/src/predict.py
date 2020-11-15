@@ -138,7 +138,7 @@ if __name__ == "__main__":
     parser.add_argument('--output-dir', type=str, default="../data/04_generated_images/20x_images", help='input image channels')
     parser.add_argument('--weights-path', type=str, default="../../data/05_saved_models/A2_g_best.pth", help='output image channels')
     parser.add_argument('--target', type=str, default="A2", help="'A1', 'A2', 'A3' or 'all'")
-    parser.add_argument('--mask', action='store_true')
+    parser.add_argument('--mask-dir', type=str, default=None, help="Path to mask folder")
     parser.add_argument('--verbose', action="store_true", help="Measure inference time")
     parser.add_argument('--match-histogram', action="store_true", help="Match histograms with training data as post-processing.")
     parser.add_argument('--mag', type=str, default=None, help="Either 20x, 40x or 60x (Used when matching histograms).")
@@ -163,7 +163,7 @@ if __name__ == "__main__":
     dataset = PredictionDataset(input_dir, use_masks=True)
 
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
-    if opt.mask:
+    if opt.mask_dir is not None:
         model = UnetResnet152v2(input_channels=8, output_channels=1)
     else:
         model = UnetResnet152(input_channels=7, output_channels=1)
@@ -193,7 +193,7 @@ if __name__ == "__main__":
             inference_times.append(inference_time)
             t_iter.set_description(f"inference time: {np.mean(inference_times)}, batch_size: {x.shape}, crop_size: {opt.crop_size}, stride: {opt.stride}, TTA: {7} augmentations")
             
-        if opt.mask:
+        if opt.mask_dir is not None:
             generated_image = output_image[0,0].numpy().astype(np.uint16)
         else:
             generated_image = output_image[0,0].numpy().astype(np.uint16)
