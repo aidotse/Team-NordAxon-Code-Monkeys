@@ -144,6 +144,7 @@ if __name__ == "__main__":
     parser.add_argument('--crop-size', type=int, default=1024, help="Must be 2^n, e.g. 256, 512, 1024")
 
     opt = parser.parse_args()
+    print(opt)
 
     # 1 Load model and weights
     # 2 Create prediction dataset
