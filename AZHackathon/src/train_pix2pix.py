@@ -13,9 +13,9 @@ import torch.backends.cudnn as cudnn
 
 from data.dataset import AstraZenecaTrainingDataset, SingleMagnificationDataset
 from data.augmentations import affine_augmentations, test_augmentations
-from models.network import define_G, define_D, GANLoss, get_scheduler, update_learning_rate
+from models.network import define_D, get_scheduler, update_learning_rate
 from models.unets import UnetResnet152v2, UnetResnet152v3
-from utils.losses import SpectralLoss, reverse_huber_loss
+from utils.losses import SpectralLoss, reverse_huber_loss, GANLoss
 # Init wandb
 import wandb
 
