@@ -237,8 +237,10 @@ class PredictionDataset(Dataset):
         self.dir_path = dir_path
         
         dataset_samples = glob.glob(os.path.join(self.dir_path, "Assay*"))
+        print(len(dataset_samples))
         if use_masks is not None:
             dataset_samples = dataset_samples + glob.glob(os.path.join(use_masks, "Assay*"))
+            print(len(dataset_samples))
         
 
         dataset_dicts = [get_image_metadata(path) for path in dataset_samples]
