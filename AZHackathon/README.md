@@ -10,6 +10,8 @@ For a training pipeline, we would suggest that you follow the following steps:
 - 2.  Follow this with training your first model!  You will start with training the segmentationmodel for the nuclei masks by running thetrain_segmentation.pyscript. Masks werecreated with the maskSLIC algorithm in the previous step, and now you can use these forthe training.  If you did not change the paths in the previous script (except for the oneto your raw data), you should not have to change anything in this script. Otherwise, youmay have to change the paths.
 - 3.  Now you have the GAN models left!  Here you have a multitude of parameters that youcan tune directly from the command line.  You run the scripttrain_pix2pix.pywitharguments that fit your data. Please note that theA1model will need 8 channels as input,whereas the other two targets only need 7. This is because of the masks from step 2.
 
+To run the inference time for a model, simply add --verbose to the predict.py script!
+
 Overall project Organization
 ------------
 
