@@ -154,7 +154,7 @@ if __name__ == "__main__":
     output_dir = opt.output_dir 
     weights_path = opt.weights_path 
     target = opt.target 
-    target_idx = {'A1':0, 'A2':1, 'A3':2}[target]
+    target_idx = {'A01':0, 'A02':1, 'A03':2}[target]
     
     Path(output_dir).mkdir(exist_ok=True, parents=True)
     dataset = PredictionDataset(input_dir)
