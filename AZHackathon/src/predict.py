@@ -12,7 +12,7 @@ import torchvision.transforms.functional as F2
 
 from utils.utils import get_image_metadata
 from utils.postprocessing import matching_histograms
-from models.unets import UnetResnet152v2, UnetSegmentationResnet152
+from models.unets import UnetResnet152, UnetSegmentationResnet152
 from data.dataset import PredictionDataset
 
 
@@ -139,7 +139,7 @@ if __name__ == "__main__":
     parser.add_argument('--target', type=str, default="A2", help="'A1', 'A2', 'A3' or 'all'")
     parser.add_argument('--mask', action='store_true')
     parser.add_argument('--match-histogram', action='store_true', default=False, help="Match histograms with training data as post-processing.")
-    parser.add_argument('--mag', type=bool, default=False, help="Either 20x, 40x or 60x (Used when matching histograms).")
+    parser.add_argument('--mag', type=str, default=None, help="Either 20x, 40x or 60x (Used when matching histograms).")
 
     opt = parser.parse_args()
 
@@ -151,8 +151,10 @@ if __name__ == "__main__":
     input_dir = opt.input_dir 
     output_dir = opt.output_dir 
     weights_path = opt.weights_path 
-    target = opt.target 
-    target_idx = {'A1':0, 'A2':1, 'A3':2}[target]
+    target = opt.target
+    print(opt)
+
+    target_idx = {'A01':0, 'A02':1, 'A03':2}[target]
     
     Path(output_dir).mkdir(exist_ok=True, parents=True)
     dataset = PredictionDataset(input_dir)
@@ -161,7 +163,7 @@ if __name__ == "__main__":
     if opt.mask:
         model = UnetSegmentationResnet152(output_channels=1)
     else:
-        model = UnetResnet152v2(output_channels=1)
+        model = UnetResnet152(output_channels=1)
 
     checkpoint = torch.load(weights_path, map_location=device)
     model.load_state_dict(checkpoint['model_state_dict'])
@@ -175,7 +177,7 @@ if __name__ == "__main__":
         if not opt.mask:
             generated_image = output_image[0,0].numpy().astype(np.uint16)
             if opt.match_histogram:
-                generated_image = matching_histograms(generated_image, opt.mag, target)  
+                generated_image = matching_histograms(generated_image, opt.mag, opt.target)  
         else:
             generated_image = (output_image[0,0]>0.5).numpy().astype(np.uint8)  
         
