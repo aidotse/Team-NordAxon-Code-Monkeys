@@ -139,7 +139,7 @@ if __name__ == "__main__":
     parser.add_argument('--target', type=str, default="A2", help="'A1', 'A2', 'A3' or 'all'")
     parser.add_argument('--mask', action='store_true')
     parser.add_argument('--match-histogram', action="store_true", help="Match histograms with training data as post-processing.")
-    parser.add_argument('--mag', type=bool, default=False, help="Either 20x, 40x or 60x (Used when matching histograms).")
+    parser.add_argument('--mag', type=str, default=None, help="Either 20x, 40x or 60x (Used when matching histograms).")
     parser.add_argument('--stride', type=int, default=512, help="(Must be less than 'crop-size') Must be 2^n, e.g. 256, 512, 1024")
     parser.add_argument('--crop-size', type=int, default=1024, help="Must be 2^n, e.g. 256, 512, 1024")
 
