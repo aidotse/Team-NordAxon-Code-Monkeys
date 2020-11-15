@@ -214,7 +214,7 @@ class RandomResizeCrop:
 
 # -------------------- Transform compose methods -------------------------
 
-def affine_augmentations():
+def affine_augmentations(crop_size=(256,256)):
     """
     The augmentations that we have deemed as
     less risky
@@ -223,7 +223,7 @@ def affine_augmentations():
     """
     transforms = A.Compose([
         ChannelChange((1,2,0)),
-        RandomResizeCrop(),
+        RandomResizeCrop(crop_size=crop_size),
         VerticalFlip(),
         HorizontalFlip(),
         Rotate(),
