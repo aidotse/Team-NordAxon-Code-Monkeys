@@ -10,7 +10,8 @@ import torch.nn.functional as F
 import torchvision.transforms.functional as F2
 
 from utils.utils import get_image_metadata
-from models.unets import UnetResnet152, UnetSegmentationResnet152
+from utils.postprocessing import matching_histograms
+from models.unets import UnetResnet152v2, UnetSegmentationResnet152
 from data.dataset import PredictionDataset
 
 
@@ -136,6 +137,8 @@ if __name__ == "__main__":
     parser.add_argument('--weights_path', type=str, default="../../data/05_saved_models/A2_g_best.pth", help='output image channels')
     parser.add_argument('--target', type=str, default="A2", help="'A1', 'A2', 'A3' or 'all'")
     parser.add_argument('--mask', action='store_true')
+    parser.add_argument('--match_histogram', type=bool, default=False, help="Match histograms with training data as post-processing.")
+    parser.add_argument('--mag', type=bool, default=False, help="Either 20x, 40x or 60x (Used when matching histograms).")
 
     opt = parser.parse_args()
 
@@ -170,9 +173,11 @@ if __name__ == "__main__":
         
         if not opt.mask:
             generated_image = output_image[0,0].numpy().astype(np.uint16)
+            if opt.match_histogram:
+                generated_image = matching_histograms(generated_image, opt.mag, target)  
         else:
-            generated_image = (output_image[0,0]>0.5).numpy().astype(np.uint8)
-            
+            generated_image = (output_image[0,0]>0.5).numpy().astype(np.uint8)  
+        
         save_path = os.path.join(output_dir, output_filenames[target_idx])
         success = cv2.imwrite(save_path, generated_image)
         if success:
