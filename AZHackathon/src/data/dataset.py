@@ -240,7 +240,7 @@ class PredictionDataset(Dataset):
         if use_masks is not None:
             dataset_samples = dataset_samples + glob.glob(os.path.join(use_masks, "Assay*"))
         
-        print(len(dataset_samples))
+
         dataset_dicts = [get_image_metadata(path) for path in dataset_samples]
         
         # Group all 7 inputs with all 3 respective targets into variable sample
@@ -259,7 +259,7 @@ class PredictionDataset(Dataset):
                 # Is an input
                 z_number_3d = sample_dict["z_number_3d"]
                 samples[sample_key]["input"][z_number_3d] = sample_dict["path"]
-            elif sample_dict["is_mask"]:
+            elif "/masks/" in sample_dict["path"]:
                 # Is a mask
                 action_list_number = sample_dict["action_list_number"]
                 samples[sample_key]["mask"][action_list_number] = sample_dict["path"]
@@ -272,7 +272,7 @@ class PredictionDataset(Dataset):
         self.crop_size = crop_size
         self.transforms = transform
         self.use_masks = use_masks
-        print(len(self.samples))
+
     def __len__(self):
         return len(self.samples)
     
