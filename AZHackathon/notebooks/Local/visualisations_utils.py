@@ -96,7 +96,7 @@ def visualise_stats(stats_dict : dict):
                             kde_kws = {"weights":list(val.values()), "label":key})
         plt.title(mag+" magnification", fontsize = 14)
         plt.legend()
-
+        
     fig, axes = plt.subplots(nbr_specs,1, figsize=(20,4*nbr_specs))
     for mag in stats_dict.keys():
         i=0
