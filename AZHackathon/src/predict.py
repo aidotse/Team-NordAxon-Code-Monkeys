@@ -191,7 +191,7 @@ if __name__ == "__main__":
             end_time = time()
             inference_time = end_time - start_time
             inference_times.append(inference_time)
-            t_iter.set_description(f"inference time: {np.mean(inference_times)}, batch_size: {x.shape}, crop_size: {opt.crop_size}, stride: {opt.stride}")
+            t_iter.set_description(f"inference time: {np.mean(inference_times)}, batch_size: {x.shape}, crop_size: {opt.crop_size}, stride: {opt.stride}, TTA: {7} augmentations")
             
         if opt.mask:
             generated_image = output_image[0,0].numpy().astype(np.uint16)
