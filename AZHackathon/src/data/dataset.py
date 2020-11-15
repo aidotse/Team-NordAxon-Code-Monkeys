@@ -237,10 +237,9 @@ class PredictionDataset(Dataset):
         self.dir_path = dir_path
         
         dataset_samples = glob.glob(os.path.join(self.dir_path, "Assay*"))
-        print(len(dataset_samples))
+ 
         if use_masks is not None:
             dataset_samples = dataset_samples + glob.glob(os.path.join(use_masks, "Assay*"))
-            print(len(dataset_samples))
         
 
         dataset_dicts = [get_image_metadata(path) for path in dataset_samples]
@@ -320,4 +319,4 @@ class PredictionDataset(Dataset):
             m = cv2.imread(mask_path, -1)
             mask[0] = m
             
-            return torch.cat([input, mask], dim=0), input_filenames, output_filenames
+            return torch.cat([input, torch.Tensor(mask)], dim=0), input_filenames, output_filenames
