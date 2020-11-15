@@ -1,9 +1,16 @@
-AZHackathon
+NordAxon Code Monkeys Astra Zeneca Hackathon
 ==============================
 
-AZ Hackathon
+The overall structure of the repo is described below.
 
-Project Organization
+To run inference with our models, we have prepared a notebook under notebooks/End-to-endpipeline.ipynb where  we  detail  the  data  preparation  and  inference  given  the raw data.
+
+For a training pipeline, we would suggest that you follow the following steps:
+- 1.  Start by processing your raw input data by running the scriptprepare_training_data.py. At the bottom of the script, you can define the paths to your raw data and where you wantto store the training data. Please make sure that you follow how the already defined pathsare structured - there will be a middle step folder created.
+- 2.  Follow this with training your first model!  You will start with training the segmentationmodel for the nuclei masks by running thetrain_segmentation.pyscript. Masks werecreated with the maskSLIC algorithm in the previous step, and now you can use these forthe training.  If you did not change the paths in the previous script (except for the oneto your raw data), you should not have to change anything in this script. Otherwise, youmay have to change the paths.
+- 3.  Now you have the GAN models left!  Here you have a multitude of parameters that youcan tune directly from the command line.  You run the scripttrain_pix2pix.pywitharguments that fit your data. Please note that theA1model will need 8 channels as input,whereas the other two targets only need 7. This is because of the masks from step 2.
+
+Overall project Organization
 ------------
 
     ├── LICENSE
@@ -15,23 +22,14 @@ Project Organization
     │   ├── processed      <- The final, canonical data sets for modeling.
     │   └── raw            <- The original, immutable data dump.
     │
-    ├── docs               <- A default Sphinx project; see sphinx-doc.org for details
-    │
     ├── models             <- Trained and serialized models, model predictions, or model summaries
     │
     ├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
     │                         the creator's initials, and a short `-` delimited description, e.g.
     │                         `1.0-jqp-initial-data-exploration`.
     │
-    ├── references         <- Data dictionaries, manuals, and all other explanatory materials.
-    │
     ├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
-    │   └── figures        <- Generated graphics and figures to be used in reporting
     │
-    ├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
-    │                         generated with `pip freeze > requirements.txt`
-    │
-    ├── setup.py           <- makes project pip installable (pip install -e .) so src can be imported
     ├── src                <- Source code for use in this project.
     │   ├── __init__.py    <- Makes src a Python module
     │   │
@@ -41,10 +39,7 @@ Project Organization
     │   ├── features       <- Scripts to turn raw data into features for modeling
     │   │   └── build_features.py
     │   │
-    │   ├── models         <- Scripts to train models and then use trained models to make
-    │   │   │                 predictions
-    │   │   ├── predict_model.py
-    │   │   └── train_model.py
+    │   ├── models         <- Scripts that define models
     │   │
     │   └── visualization  <- Scripts to create exploratory and results oriented visualizations
     │       └── visualize.py
