@@ -213,7 +213,7 @@ class SingleMagnificationDataset(Dataset):
         return input, output, mask
 
 class PredictionDataset(Dataset):
-    def __init__(self, dir_path, crop_size=(256,256), transform=None):
+    def __init__(self, dir_path, crop_size=(256,256), transform=None, use_masks=False):
         """Prediction dataset for sample images for the Astra Zeneca competition
         
         Group by row_col and field of view
@@ -268,6 +268,7 @@ class PredictionDataset(Dataset):
         self.samples = list(samples.values())
         self.crop_size = crop_size
         self.transforms = transform
+        self.use_masks = use_masks
         
     def __len__(self):
         return len(self.samples)
@@ -285,8 +286,6 @@ class PredictionDataset(Dataset):
         assert self.crop_size[1] <= h
 
         input = np.zeros((7, w, h))
-        output = np.zeros((3, w, h))
-        mask = np.zeros((3, w, h), dtype = 'int16') # As masks will be binary
         input_filenames = list()
         for i, z_number_3d in enumerate(["Z01", "Z02", "Z03", "Z04", "Z05", "Z06", "Z07"]):
             img_path = sample_dict["input"][z_number_3d]
@@ -306,4 +305,14 @@ class PredictionDataset(Dataset):
             #target_filename[49:52] = 'C' + target
             
             output_filenames.append(target_filename)
-        return input, input_filenames, output_filenames
+            
+        if not self.use_masks:
+            return input, input_filenames, output_filenames
+        else:
+    
+            mask = np.zeros((1, w, h), dtype = 'int16') # As masks will be binary
+            mask_path = sample_dict["mask"]["A01"]
+            m = cv2.imread(mask_path, -1)
+            mask[0] = m
+            
+            return torch.cat([input, mask], dim=0), input_filenames, output_filenames
