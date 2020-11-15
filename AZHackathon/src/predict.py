@@ -172,7 +172,7 @@ if __name__ == "__main__":
     for i in tqdm(range(dataset_length)):
         inputs, input_filenames, output_filenames = dataset[i]
         x = torch.Tensor(inputs).unsqueeze(0)
-        output_image = test_time_augmentation_predict(x, model, device, crop_size=1024, stride=256)
+        output_image = test_time_augmentation_predict(x, model, device, crop_size=1024, stride=512)
         
         if not opt.mask:
             generated_image = output_image[0,0].numpy().astype(np.uint16)
