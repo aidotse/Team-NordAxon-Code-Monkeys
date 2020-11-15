@@ -12,7 +12,7 @@ import torchvision.transforms.functional as F2
 
 from utils.utils import get_image_metadata
 from utils.postprocessing import matching_histograms
-from models.unets import UnetResnet152v2, UnetSegmentationResnet152
+from models.unets import UnetResnet152, UnetResnet152v2, UnetSegmentationResnet152
 from data.dataset import PredictionDataset
 
 
@@ -163,7 +163,7 @@ if __name__ == "__main__":
     if opt.mask:
         model = UnetSegmentationResnet152(output_channels=1)
     else:
-        model = UnetResnet152v2(output_channels=1)
+        model = UnetResnet152(output_channels=1)
 
     checkpoint = torch.load(weights_path, map_location=device)
     model.load_state_dict(checkpoint['model_state_dict'])
