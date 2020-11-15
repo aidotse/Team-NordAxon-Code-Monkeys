@@ -3,7 +3,7 @@ NordAxon Code Monkeys Astra Zeneca Hackathon
 
 The overall structure of the repo is described below.
 
-To run inference with our models, we have prepared a notebook under notebooks/End-to-endpipeline.ipynb where  we  detail  the  data  preparation  and  inference  given  the raw data.
+To run inference with our models, we have prepared a notebook under notebooks/End-to-endpipeline.ipynb where  we  detail  the  data  preparation  and  inference  given  the raw data.  If you wish to run a model with inference, simply add the --verbose argument to the predict.py calls in the notebook!
 
 For a training pipeline, we would suggest that you follow the following steps:
 - 1.  Start by processing your raw input data by running the scriptprepare_training_data.py. At the bottom of the script, you can define the paths to your raw data and where you wantto store the training data. Please make sure that you follow how the already defined pathsare structured - there will be a middle step folder created.
