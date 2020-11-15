@@ -88,7 +88,7 @@ class UnetResnet152v2(nn.Module):
             decoder_channels= (256, 128, 64, 32, 16)
         )
 
-        # Change Up-Sampling kernel size
+        # Change Up-Sampling kernel size - only last upsampling layer
         print(len(self.unet.decoder.blocks))
         print(self.unet.decoder.blocks[4].conv2[0].in_channels)
         print(self.unet.decoder.blocks[4].conv2[0].out_channels)
