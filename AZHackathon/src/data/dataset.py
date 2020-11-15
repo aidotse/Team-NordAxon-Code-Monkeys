@@ -237,7 +237,7 @@ class PredictionDataset(Dataset):
         self.dir_path = dir_path
         
         dataset_samples = glob.glob(os.path.join(self.dir_path, "Assay*"))
-
+        print(len(dataset_samples))
         dataset_dicts = [get_image_metadata(path) for path in dataset_samples]
         
         # Group all 7 inputs with all 3 respective targets into variable sample
@@ -264,12 +264,12 @@ class PredictionDataset(Dataset):
                 # Is a target
                 action_list_number = sample_dict["action_list_number"]
                 samples[sample_key]["target"][action_list_number] = sample_dict["path"]                
-
+        
         self.samples = list(samples.values())
         self.crop_size = crop_size
         self.transforms = transform
         self.use_masks = use_masks
-        
+        print(len(self.samples))
     def __len__(self):
         return len(self.samples)
     
